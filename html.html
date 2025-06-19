@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Decision Tree Generator | Free Online Tool</title>
+    <meta name="description" content="Free online AI decision tree generator - no signup required. Upload your dataset and instantly create decision tree visualizations with actionable insights.">
+    <meta name="keywords" content="AI decision tree, machine learning tool, free data analysis, no signup required, decision tree generator, data visualization">
+    <meta name="author" content="DecisionTreeAI">
+    <meta name="robots" content="index, follow">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-project-diagram"></i>
+                    <span>DecisionTree<span style="color: var(--secondary)">AI</span></span>
+                </div>
+                <nav>
+                    <ul>
+                        <li><a href="#" class="active">Home</a></li>
+                        <li><a href="#">Features</a></li>
+                        <li><a href="#">Examples</a></li>
+                        <li><a href="#">Pricing</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>Free AI-Powered Decision Tree Generator - No Signup Required</h1>
+            <p>Upload your dataset and instantly generate intelligent decision trees with insightful visualizations. Our AI handles both numeric and categorical data automatically.</p>
+            <div class="action-buttons" style="margin-top: 40px;">
+                <button class="btn" onclick="document.getElementById('dropZone').scrollIntoView({behavior: 'smooth'})">
+                    <i class="fas fa-bolt"></i> Generate Your Tree Now
+                </button>
+                <button class="btn btn-outline">
+                    <i class="fas fa-book"></i> View Examples
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="upload-section">
+                <h2 class="section-title"><i class="fas fa-cloud-upload-alt"></i> Upload Your Data</h2>
+                
+                <div class="upload-container" id="dropZone">
+                    <i class="fas fa-file-upload"></i>
+                    <h3>Upload Dataset</h3>
+                    <p>Drag & drop your file here or click to browse</p>
+                    <p class="small">Supported formats: CSV, Excel, JSON (Max 10MB)</p>
+                    <button class="btn btn-outline" id="browseBtn">
+                        <i class="fas fa-folder-open"></i> Browse Files
+                    </button>
+                    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.json" style="display: none;">
+                </div>
+                
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                
+                <div class="file-info" id="fileInfo">
+                    <div class="file-info-header">
+                        <div class="file-details">
+                            <div class="file-icon">
+                                <i class="fas fa-file-csv"></i>
+                            </div>
+                            <div>
+                                <div class="file-name" id="fileName">customer_data.csv</div>
+                                <div class="file-size" id="fileSize">3.2 MB</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="target-selection" id="targetSelection">
+                    <h3 class="selection-title">Select Target Variable</h3>
+                    <div class="form-group">
+                        <label for="targetSelect">Choose the variable you want to predict</label>
+                        <select id="targetSelect" class="form-control">
+                            <option value="loan_approval">Loan Approval</option>
+                            <option value="income_level">Income Level</option>
+                            <option value="credit_rating">Credit Rating</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            Select Features to Include 
+                            <span class="tooltip">
+                                <i class="fas fa-info-circle"></i>
+                                <span class="tooltiptext">Our AI automatically handles both numeric and categorical data. Unselect columns that shouldn't be used for prediction.</span>
+                            </span>
+                        </label>
+                        <div class="feature-selection">
+                            <div class="feature-item">
+                                <input type="checkbox" id="feature1" checked>
+                                <label for="feature1">Age</label>
+                                <span class="data-type numeric">Numeric</span>
+                            </div>
+                            <div class="feature-item">
+                                <input type="checkbox" id="feature2" checked>
+                                <label for="feature2">Income</label>
+                                <span class="data-type numeric">Numeric</span>
+                            </div>
+                            <div class="feature-item">
+                                <input type="checkbox" id="feature3" checked>
+                                <label for="feature3">Employment Status</label>
+                                <span class="data-type">Categorical</span>
+                            </div>
+                            <div class="feature-item">
+                                <input type="checkbox" id="feature4" checked>
+                                <label for="feature4">Credit Score</label>
+                                <span class="data-type numeric">Numeric</span>
+                            </div>
+                            <div class="feature-item">
+                                <input type="checkbox" id="feature5" checked>
+                                <label for="feature5">Education Level</label>
+                                <span class="data-type">Categorical</span>
+                            </div>
+                            <div class="feature-item">
+                                <input type="checkbox" id="feature6" checked>
+                                <label for="feature6">Loan Amount</label>
+                                <span class="data-type numeric">Numeric</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn" id="generateBtn" disabled>
+                        <i class="fas fa-cogs"></i> Generate Decision Tree
+                    </button>
+                    <button class="btn btn-outline" id="clearBtn">
+                        <i class="fas fa-trash-alt"></i> Clear
+                    </button>
+                    <button class="btn btn-secondary" id="downloadBtn" disabled>
+                        <i class="fas fa-download"></i> Download Results
+                    </button>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <h3 style="margin-bottom: 15px; color: var(--secondary);">How It Works</h3>
+                    <ol style="padding-left: 20px; line-height: 1.8; color: var(--text-secondary);">
+                        <li><strong>Upload your dataset</strong> in CSV, Excel, or JSON format</li>
+                        <li><strong>Select target variable</strong> you want to predict</li>
+                        <li>Our AI automatically <strong>handles numeric and categorical data</strong></li>
+                        <li><strong>Decision tree model</strong> is generated instantly</li>
+                        <li><strong>Visualize the tree</strong> and explore key insights</li>
+                        <li><strong>Download results</strong> as PDF or image</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="results-section">
+                <div class="visualization-container">
+                    <div class="tree-placeholder" id="treePlaceholder">
+                        <i class="fas fa-tree"></i>
+                        <h3>Decision Tree Visualization</h3>
+                        <p>Upload your data file and generate your AI decision tree to see the visualization here. Our algorithm automatically handles both numeric and categorical data types.</p>
+                    </div>
+                    <svg id="tree-diagram" style="display: none;"></svg>
+                </div>
+                
+                <div class="insights-container">
+                    <h2 class="section-title"><i class="fas fa-chart-bar"></i> Analysis & Insights</h2>
+                    <div class="insights-grid" id="insightsGrid">
+                        <div class="insight-card">
+                            <h4><i class="fas fa-sitemap"></i> Tree Structure</h4>
+                            <p><strong>Depth:</strong> 5 levels</p>
+                            <p><strong>Nodes:</strong> 23</p>
+                            <p><strong>Leaves:</strong> 12</p>
+                            <p><strong>Data Handling:</strong> Auto-detected 3 categorical and 4 numeric features</p>
+                        </div>
+                        
+                        <div class="insight-card">
+                            <h4><i class="fas fa-bullseye"></i> Model Accuracy</h4>
+                            <p><strong>Training Accuracy:</strong> 92.4%</p>
+                            <p><strong>Validation Accuracy:</strong> 89.7%</p>
+                            <div class="chart-container">
+                                <canvas id="accuracyChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="insight-card">
+                            <h4><i class="fas fa-star"></i> Feature Importance</h4>
+                            <div class="features-container">
+                                <div class="feature-pill">
+                                    <span class="importance">0.87</span>
+                                    <span>Income Level</span>
+                                </div>
+                                <div class="feature-pill">
+                                    <span class="importance">0.72</span>
+                                    <span>Age</span>
+                                </div>
+                                <div class="feature-pill">
+                                    <span class="importance">0.58</span>
+                                    <span>Credit Score</span>
+                                </div>
+                                <div class="feature-pill">
+                                    <span class="importance">0.42</span>
+                                    <span>Employment Status</span>
+                                </div>
+                                <div class="feature-pill">
+                                    <span class="importance">0.35</span>
+                                    <span>Location</span>
+                                </div>
+                                <div class="feature-pill">
+                                    <span class="importance">0.21</span>
+                                    <span>Education Level</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="insight-card">
+                            <h4><i class="fas fa-lightbulb"></i> Key Findings</h4>
+                            <p>✅ Income level is the strongest predictor for loan approval decisions.</p>
+                            <p>✅ Customers aged 30-45 with credit scores above 700 have the highest approval rates.</p>
+                            <p>✅ Employment status has a moderate impact on loan amounts.</p>
+                            <p>❌ Education level showed minimal impact in this dataset.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="seo-content">
+            <h2>Free AI Decision Tree Generator - No Signup Required</h2>
+            
+            <p>Welcome to DecisionTreeAI - the premier free online tool for generating AI-powered decision trees without any signup or registration required. Our platform enables data scientists, business analysts, and students to transform raw data into actionable insights through intuitive decision tree visualizations.</p>
+            
+            <h3>Why Choose Our Decision Tree Generator?</h3>
+            <ul>
+                <li><strong>Completely Free</strong> - No hidden costs, no subscription fees</li>
+                <li><strong>Zero Signup Required</strong> - Start generating decision trees immediately</li>
+                <li><strong>Handles All Data Types</strong> - Automatically processes both numeric and categorical variables</li>
+                <li><strong>Professional Visualizations</strong> - Interactive and exportable decision tree diagrams</li>
+                <li><strong>Actionable Insights</strong> - Detailed analysis of feature importance and model performance</li>
+                <li><strong>Privacy Focused</strong> - Your data never leaves your browser</li>
+            </ul>
+            
+            <h3>How to Create a Decision Tree in 3 Simple Steps</h3>
+            <ol>
+                <li><strong>Upload Your Dataset</strong> - Supports CSV, Excel, and JSON formats (up to 10MB)</li>
+                <li><strong>Select Target Variable</strong> - Choose what you want to predict</li>
+                <li><strong>Generate & Analyze</strong> - Our AI creates the decision tree and provides insights</li>
+            </ol>
+            
+            <h3>Perfect for Various Use Cases</h3>
+            <p>Our decision tree generator is versatile enough for multiple applications:</p>
+            <ul>
+                <li><strong>Business Decision Making</strong> - Customer segmentation, risk assessment</li>
+                <li><strong>Academic Research</strong> - Data analysis for papers and projects</li>
+                <li><strong>Machine Learning Prototyping</strong> - Quickly test decision tree models</li>
+                <li><strong>Data Exploration</strong> - Understand relationships in your dataset</li>
+                <li><strong>Process Optimization</strong> - Identify key decision points in workflows</li>
+            </ul>
+            
+            <h3>Advanced Data Handling Capabilities</h3>
+            <p>Our AI-powered system automatically detects and handles different data types:</p>
+            <ul>
+                <li><strong>Numeric Data</strong> - Automatically scaled and normalized</li>
+                <li><strong>Categorical Data</strong> - Intelligent encoding for optimal results</li>
+                <li><strong>Missing Values</strong> - Smart imputation techniques applied</li>
+                <li><strong>Feature Selection</strong> - Identifies and excludes irrelevant columns</li>
+            </ul>
+            
+            <p>Whether you're working with financial data, customer information, scientific measurements, or survey responses, our decision tree generator delivers professional results with zero setup required. Try it today and experience the power of AI-driven data analysis!</p>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-col">
+                    <h3>DecisionTreeAI</h3>
+                    <p style="color: var(--text-secondary); line-height: 1.6;">Transforming complex data into clear, actionable decision trees with artificial intelligence. Completely free with no signup required.</p>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Quick Links</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Home</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Documentation</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> API Reference</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Case Studies</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Resources</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Sample Datasets</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Tutorials</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Blog</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Support</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col">
+                    <h3>Connect</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fab fa-github"></i> GitHub</a></li>
+                        <li><a href="#"><i class="fab fa-twitter"></i> Twitter</a></li>
+                        <li><a href="#"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                        <li><a href="#"><i class="fab fa-discord"></i> Discord</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="copyright">
+                &copy; 2023 DecisionTreeAI. All rights reserved. | Free Online AI Decision Tree Generator - No Signup Required
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
