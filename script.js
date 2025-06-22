@@ -1,409 +1,317 @@
-// script.js
-// DOM Elements
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-const browseBtn = document.getElementById('browseBtn');
-const generateBtn = document.getElementById('generateBtn');
-const clearBtn = document.getElementById('clearBtn');
-const downloadBtn = document.getElementById('downloadBtn');
-const fileInfo = document.getElementById('fileInfo');
-const fileName = document.getElementById('fileName');
-const fileSize = document.getElementById('fileSize');
-const targetSelection = document.getElementById('targetSelection');
-const progressContainer = document.getElementById('progressContainer');
-const progressBar = document.getElementById('progressBar');
-const treePlaceholder = document.getElementById('treePlaceholder');
-const treeDiagram = document.getElementById('tree-diagram');
-const targetSelect = document.getElementById('targetSelect');
-
-// Event Listeners
-browseBtn.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', handleFileSelect);
-generateBtn.addEventListener('click', generateDecisionTree);
-clearBtn.addEventListener('click', clearAll);
-downloadBtn.addEventListener('click', downloadResults);
-
-// Drag and drop events
-['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    dropZone.addEventListener(eventName, preventDefaults, false);
-});
-
-function preventDefaults(e) {
-    e.preventDefault();
-    e.stopPropagation();
-}
-
-['dragenter', 'dragover'].forEach(eventName => {
-    dropZone.addEventListener(eventName, highlight, false);
-});
-
-['dragleave', 'drop'].forEach(eventName => {
-    dropZone.addEventListener(eventName, unhighlight, false);
-});
-
-function highlight() {
-    dropZone.classList.add('drag-over');
-}
-
-function unhighlight() {
-    dropZone.classList.remove('drag-over');
-}
-
-dropZone.addEventListener('drop', handleDrop, false);
-
-function handleDrop(e) {
-    const dt = e.dataTransfer;
-    const files = dt.files;
-    handleFiles(files);
-}
-
-function handleFileSelect() {
-    const files = fileInput.files;
-    handleFiles(files);
-}
-
-function handleFiles(files) {
-    if (files.length === 0) return;
+document.addEventListener('DOMContentLoaded', function() {
+    // DOM elements
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('file-input');
+    const browseBtn = document.getElementById('browse-btn');
+    const fileInfo = document.getElementById('file-info');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const processBtn = document.getElementById('process-btn');
+    const changeFileBtn = document.getElementById('change-file-btn');
+    const resultsContainer = document.getElementById('results-container');
+    const loading = document.getElementById('loading');
+    const regenerateBtn = document.getElementById('regenerate-btn');
     
-    const file = files[0];
-    const validTypes = ['text/csv', 'application/vnd.ms-excel', 
-                       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
-                       'application/json'];
+    // Event listeners
+    browseBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', handleFileSelect);
+    changeFileBtn.addEventListener('click', () => fileInput.click());
+    processBtn.addEventListener('click', processFile);
+    regenerateBtn.addEventListener('click', processFile);
     
-    if (!validTypes.includes(file.type)) {
-        alert('Please upload a CSV, Excel, or JSON file.');
-        return;
+    // Drag and drop events
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
     }
     
-    // Update file info
-    fileName.textContent = file.name;
-    fileSize.textContent = formatFileSize(file.size);
-    fileInfo.classList.add('active');
-    targetSelection.classList.add('active');
-    generateBtn.disabled = false;
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, () => {
+            uploadArea.classList.add('drag-over');
+        }, false);
+    });
     
-    // Simulate upload progress
-    simulateUploadProgress();
-}
-
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function simulateUploadProgress() {
-    progressContainer.style.display = 'block';
-    let width = 0;
-    const interval = setInterval(() => {
-        if (width >= 100) {
-            clearInterval(interval);
-        } else {
-            width += Math.random() * 10;
-            if (width > 100) width = 100;
-            progressBar.style.width = width + '%';
-        }
-    }, 200);
-}
-
-function generateDecisionTree() {
-    // Show processing state
-    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-    generateBtn.disabled = true;
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, () => {
+            uploadArea.classList.remove('drag-over');
+        }, false);
+    });
     
-    // Get selected target
-    const target = targetSelect.value;
+    uploadArea.addEventListener('drop', handleDrop, false);
     
-    // Simulate processing delay
-    setTimeout(() => {
-        // Hide placeholder and show diagram
-        treePlaceholder.style.display = 'none';
-        treeDiagram.style.display = 'block';
-        
-        // Render the decision tree visualization
-        renderDecisionTree(target);
-        
-        // Initialize charts
-        initCharts();
-        
-        // Update button states
-        generateBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Regenerate Tree';
-        generateBtn.disabled = false;
-        downloadBtn.disabled = false;
-        
-        // Show success message
-        showNotification(`Decision tree generated successfully for target: ${target.replace('_', ' ')}`);
-    }, 2500);
-}
-
-function renderDecisionTree(target) {
-    // Clear previous diagram
-    treeDiagram.innerHTML = '';
-    
-    // Set dimensions
-    const width = treeDiagram.clientWidth;
-    const height = treeDiagram.clientHeight;
-    const margin = { top: 40, right: 120, bottom: 40, left: 40 };
-    
-    // Create SVG container
-    const svg = d3.select(treeDiagram)
-        .attr('width', width)
-        .attr('height', height);
-    
-    // Create a group for the tree
-    const g = svg.append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`);
-    
-    // Create a sample tree structure based on target
-    let treeData;
-    
-    if (target === 'loan_approval') {
-        treeData = {
-            name: "Income > $50k?",
-            children: [
-                {
-                    name: "Credit Score > 700?",
-                    children: [
-                        { name: "APPROVE", value: 234 },
-                        { name: "Age > 35?", 
-                          children: [
-                            { name: "APPROVE", value: 189 },
-                            { name: "REVIEW", value: 45 }
-                          ] 
-                        }
-                    ]
-                },
-                {
-                    name: "Employment > 2 years?",
-                    children: [
-                        { name: "APPROVE", value: 167 },
-                        { name: "REJECT", value: 98 }
-                    ]
-                }
-            ]
-        };
-    } else if (target === 'income_level') {
-        treeData = {
-            name: "Education Level?",
-            children: [
-                {
-                    name: "Graduate Degree?",
-                    children: [
-                        { name: "High Income", value: 187 },
-                        { name: "Experience > 5y?", 
-                          children: [
-                            { name: "High Income", value: 142 },
-                            { name: "Medium Income", value: 45 }
-                          ] 
-                        }
-                    ]
-                },
-                {
-                    name: "Undergraduate Degree?",
-                    children: [
-                        { name: "Experience > 5y?", 
-                          children: [
-                            { name: "Medium Income", value: 156 },
-                            { name: "Low Income", value: 67 }
-                          ] 
-                        },
-                        { name: "Medium Income", value: 124 }
-                    ]
-                }
-            ]
-        };
-    } else { // credit_rating
-        treeData = {
-            name: "Payment History?",
-            children: [
-                {
-                    name: "On Time Payments?",
-                    children: [
-                        { name: "Excellent", value: 210 },
-                        { name: "Credit Utilization?", 
-                          children: [
-                            { name: "Good", value: 125 },
-                            { name: "Fair", value: 85 }
-                          ] 
-                        }
-                    ]
-                },
-                {
-                    name: "Missed Payments?",
-                    children: [
-                        { name: "Credit Utilization?", 
-                          children: [
-                            { name: "Fair", value: 95 },
-                            { name: "Poor", value: 65 }
-                          ] 
-                        },
-                        { name: "Poor", value: 110 }
-                    ]
-                }
-            ]
-        };
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        fileInput.files = files;
+        handleFileSelect();
     }
     
-    // Set up tree layout
-    const treeLayout = d3.tree()
-        .size([height - margin.top - margin.bottom, width - margin.left - margin.right]);
-    
-    // Convert data to hierarchy
-    const root = d3.hierarchy(treeData);
-    treeLayout(root);
-    
-    // Create links
-    const link = g.selectAll('.link')
-        .data(root.links())
-        .enter().append('path')
-        .attr('class', 'link')
-        .attr('d', d3.linkHorizontal()
-            .x(d => d.y)
-            .y(d => d.x))
-        .attr('fill', 'none')
-        .attr('stroke', 'rgba(108, 92, 231, 0.6)')
-        .attr('stroke-width', 2);
-    
-    // Create nodes
-    const node = g.selectAll('.node')
-        .data(root.descendants())
-        .enter().append('g')
-        .attr('class', d => `node ${d.children ? 'node--internal' : 'node--leaf'}`)
-        .attr('transform', d => `translate(${d.y},${d.x})`);
-    
-    // Add circles
-    node.append('circle')
-        .attr('r', 8)
-        .attr('fill', d => d.children ? '#6c5ce7' : '#00cec9')
-        .attr('stroke', '#fff')
-        .attr('stroke-width', 2);
-    
-    // Add text labels
-    node.append('text')
-        .attr('dy', d => d.children ? -15 : 15)
-        .attr('dx', d => d.children ? -5 : 5)
-        .attr('text-anchor', d => d.children ? 'end' : 'start')
-        .attr('fill', '#fff')
-        .attr('font-size', '14px')
-        .text(d => d.data.name);
-    
-    // Add value for leaf nodes
-    node.filter(d => !d.children)
-        .append('text')
-        .attr('dy', 15)
-        .attr('dx', 5)
-        .attr('text-anchor', 'start')
-        .attr('fill', 'rgba(255, 255, 255, 0.7)')
-        .attr('font-size', '12px')
-        .text(d => `Cases: ${d.data.value}`);
-}
-
-function initCharts() {
-    // Accuracy chart
-    const accuracyCtx = document.getElementById('accuracyChart').getContext('2d');
-    new Chart(accuracyCtx, {
-        type: 'bar',
-        data: {
-            labels: ['Training', 'Validation'],
-            datasets: [{
-                label: 'Accuracy (%)',
-                data: [92.4, 89.7],
-                backgroundColor: [
-                    'rgba(108, 92, 231, 0.7)',
-                    'rgba(0, 206, 201, 0.7)'
-                ],
-                borderColor: [
-                    'rgba(108, 92, 231, 1)',
-                    'rgba(0, 206, 201, 1)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: {
-                        color: 'rgba(255, 255, 255, 0.7)'
-                    },
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
-                    }
-                },
-                x: {
-                    ticks: {
-                        color: 'rgba(255, 255, 255, 0.7)'
-                    },
-                    grid: {
-                        display: false
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                }
+    function handleFileSelect() {
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.style.display = 'flex';
+            
+            // Update icon based on file type
+            const fileIcon = fileInfo.querySelector('.file-icon');
+            const ext = file.name.split('.').pop().toLowerCase();
+            
+            if (ext === 'csv') {
+                fileIcon.className = 'fas fa-file-csv file-icon';
+            } else if (ext === 'json') {
+                fileIcon.className = 'fas fa-file-code file-icon';
+            } else if (ext === 'xls' || ext === 'xlsx') {
+                fileIcon.className = 'fas fa-file-excel file-icon';
+            } else {
+                fileIcon.className = 'fas fa-file file-icon';
             }
         }
-    });
-}
-
-function clearAll() {
-    // Reset file input
-    fileInput.value = '';
+    }
     
-    // Reset UI elements
-    fileInfo.classList.remove('active');
-    targetSelection.classList.remove('active');
-    generateBtn.disabled = true;
-    downloadBtn.disabled = true;
-    generateBtn.innerHTML = '<i class="fas fa-cogs"></i> Generate Decision Tree';
-    progressContainer.style.display = 'none';
-    progressBar.style.width = '0%';
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
     
-    // Show placeholder and hide diagram
-    treePlaceholder.style.display = 'block';
-    treeDiagram.style.display = 'none';
+    function processFile() {
+        if (!fileInput.files.length) return;
+        
+        // Show loading state
+        loading.style.display = 'block';
+        resultsContainer.style.display = 'none';
+        processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        processBtn.disabled = true;
+        
+        // Simulate processing delay
+        setTimeout(() => {
+            // Hide loading
+            loading.style.display = 'none';
+            
+            // Generate sample data for visualization
+            generateSampleData();
+            
+            // Show results
+            resultsContainer.style.display = 'block';
+            
+            // Reset button
+            processBtn.innerHTML = '<i class="fas fa-cogs"></i> Generate Decision Tree';
+            processBtn.disabled = false;
+            
+            // Scroll to results
+            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+        }, 2500);
+    }
     
-    // Show notification
-    showNotification('All inputs cleared. Ready for new dataset.');
-}
-
-function downloadResults() {
-    showNotification('Preparing your results for download...');
+    function generateSampleData() {
+        // Update stats
+        document.getElementById('stat-rows').textContent = '1,204';
+        document.getElementById('stat-cols').textContent = '12';
+        document.getElementById('stat-nodes').textContent = '27';
+        document.getElementById('stat-accuracy').textContent = '92.3%';
+        
+        // Populate features table
+        const features = [
+            { name: 'Annual Income', importance: 'High', type: 'Numerical' },
+            { name: 'Credit Score', importance: 'High', type: 'Numerical' },
+            { name: 'Loan Amount', importance: 'High', type: 'Numerical' },
+            { name: 'Employment Status', importance: 'Medium', type: 'Categorical' },
+            { name: 'Debt-to-Income Ratio', importance: 'Medium', type: 'Numerical' },
+            { name: 'Years at Current Job', importance: 'Low', type: 'Numerical' },
+            { name: 'Home Ownership', importance: 'Low', type: 'Categorical' },
+            { name: 'Loan Purpose', importance: 'Low', type: 'Categorical' }
+        ];
+        
+        const featuresBody = document.getElementById('features-body');
+        featuresBody.innerHTML = '';
+        
+        features.forEach(feature => {
+            const row = document.createElement('tr');
+            
+            // Determine importance class
+            let importanceClass = '';
+            if (feature.importance === 'High') importanceClass = 'importance-high';
+            if (feature.importance === 'Medium') importanceClass = 'importance-medium';
+            if (feature.importance === 'Low') importanceClass = 'importance-low';
+            
+            row.innerHTML = `
+                <td>${feature.name}</td>
+                <td><span class="feature-importance ${importanceClass}">${feature.importance}</span></td>
+                <td>${feature.type}</td>
+            `;
+            featuresBody.appendChild(row);
+        });
+        
+        // Generate sample decision tree visualization
+        generateDecisionTree();
+    }
     
-    setTimeout(() => {
-        showNotification('Results downloaded successfully!');
-    }, 1500);
-}
-
-function showNotification(message) {
-    // Remove existing notification if present
-    const existing = document.querySelector('.notification');
-    if (existing) existing.remove();
-    
-    const notification = document.createElement('div');
-    notification.className = 'notification';
-    notification.innerHTML = `
-        <div style="position: fixed; bottom: 30px; right: 30px; background: var(--primary); color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 1000; display: flex; align-items: center; gap: 10px;">
-            <i class="fas fa-check-circle"></i>
-            <span>${message}</span>
-        </div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
-}
-
-// Initialize charts on load for demo
-window.addEventListener('load', () => {
-    initCharts();
+    function generateDecisionTree() {
+        // Clear previous diagram
+        document.getElementById('tree-diagram').innerHTML = '';
+        
+        const treeData = {
+            name: "Credit Score ≥ 720?",
+            value: "All Data (1,204)",
+            children: [
+                {
+                    name: "Income ≥ $80K?",
+                    value: "Score ≥ 720 (843)",
+                    children: [
+                        {
+                            name: "APPROVED",
+                            value: "Income ≥ $80K (642)",
+                            style: "fill: var(--success);",
+                            leaf: true
+                        },
+                        {
+                            name: "Debt Ratio ≤ 35%?",
+                            value: "Income < $80K (201)",
+                            children: [
+                                {
+                                    name: "APPROVED",
+                                    value: "Debt Ratio ≤ 35% (128)",
+                                    style: "fill: var(--success);",
+                                    leaf: true
+                                },
+                                {
+                                    name: "REVIEW",
+                                    value: "Debt Ratio > 35% (73)",
+                                    style: "fill: var(--warning);",
+                                    leaf: true
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "Income ≥ $60K?",
+                    value: "Score < 720 (361)",
+                    children: [
+                        {
+                            name: "REVIEW",
+                            value: "Income ≥ $60K (189)",
+                            style: "fill: var(--warning);",
+                            leaf: true
+                        },
+                        {
+                            name: "DENIED",
+                            value: "Income < $60K (172)",
+                            style: "fill: var(--danger);",
+                            leaf: true
+                        }
+                    ]
+                }
+            ]
+        };
+        
+        // Set dimensions and margins for diagram
+        const container = document.getElementById('tree-diagram');
+        const width = container.offsetWidth;
+        const height = container.offsetHeight;
+        const margin = {top: 40, right: 120, bottom: 50, left: 120};
+        const innerWidth = width - margin.left - margin.right;
+        const innerHeight = height - margin.top - margin.bottom;
+        
+        // Append SVG object
+        const svg = d3.select("#tree-diagram")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+        
+        // Create tree layout
+        const treemap = d3.tree().size([innerHeight, innerWidth]);
+        
+        // Assign data to hierarchy
+        const root = d3.hierarchy(treeData);
+        
+        // Create curved links
+        const linkGenerator = d3.linkHorizontal()
+            .x(d => d.y)
+            .y(d => d.x);
+        
+        // Compute tree layout
+        treemap(root);
+        
+        // Add links between nodes
+        svg.selectAll('.link')
+            .data(root.links())
+            .enter()
+            .append('path')
+            .attr('class', 'link')
+            .attr('d', linkGenerator)
+            .attr('fill', 'none')
+            .attr('stroke', '#64748b')
+            .attr('stroke-width', 2)
+            .attr('stroke-opacity', 0.7);
+        
+        // Add each node
+        const node = svg.selectAll('.node')
+            .data(root.descendants())
+            .enter()
+            .append('g')
+            .attr('class', d => `node${d.children ? ' node--internal' : ' node--leaf'}`)
+            .attr('transform', d => `translate(${d.y},${d.x})`);
+        
+        // Add node circles
+        node.append('circle')
+            .attr('r', 20)
+            .attr('fill', d => d.data.style ? d.data.style.split('fill: ')[1].replace(');', '') : '#6366f1')
+            .attr('stroke', d => d.data.leaf ? 'rgba(255,255,255,0.2)' : '#1e293b')
+            .attr('stroke-width', 3)
+            .attr('class', 'node-circle');
+        
+        // Add node text
+        node.append('text')
+            .attr('dy', d => d.data.leaf ? '0.35em' : '-1.5em')
+            .attr('text-anchor', 'middle')
+            .attr('fill', 'white')
+            .attr('font-size', '13px')
+            .attr('font-weight', '600')
+            .text(d => d.data.name)
+            .attr('class', 'node-name');
+        
+        // Add value text
+        node.append('text')
+            .attr('dy', d => d.data.leaf ? '1.5em' : '1.8em')
+            .attr('text-anchor', 'middle')
+            .attr('fill', '#94a3b8')
+            .attr('font-size', '11px')
+            .text(d => d.data.value)
+            .attr('class', 'node-value');
+        
+        // Add hover effects
+        node.on('mouseover', function() {
+            d3.select(this).select('.node-circle')
+                .transition()
+                .duration(200)
+                .attr('r', 24);
+            
+            d3.select(this).select('.node-name')
+                .transition()
+                .duration(200)
+                .attr('font-size', '14px');
+        });
+        
+        node.on('mouseout', function() {
+            d3.select(this).select('.node-circle')
+                .transition()
+                .duration(200)
+                .attr('r', 20);
+            
+            d3.select(this).select('.node-name')
+                .transition()
+                .duration(200)
+                .attr('font-size', '13px');
+        });
+    }
 });
