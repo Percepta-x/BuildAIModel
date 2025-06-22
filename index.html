@@ -7,10 +7,8 @@
     <meta name="keywords" content="AI decision tree, machine learning, data visualization, free tool, no signup, data analysis, predictive modeling">
     <meta name="author" content="TreeMind AI">
     <title>TreeMind - Free AI Decision Tree Generator | No Signup Required</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
@@ -37,7 +35,7 @@
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle alert-icon"></i>
                     <div>
-                        <strong>Supported formats:</strong> CSV, Excel (XLS/XLSX), JSON. For best results, ensure your data has a clear target variable. CSV files are processed fastest.
+                        <strong>Supported formats:</strong> CSV, JSON. For best results, ensure your data has a clear target variable.
                     </div>
                 </div>
                 
@@ -50,20 +48,20 @@
                             <i class="fas fa-folder-open"></i> Choose File
                         </button>
                     </div>
-                    <input type="file" id="file-input" accept=".csv,.xls,.xlsx,.json" hidden>
+                    <input type="file" id="file-input" accept=".csv,.json" hidden>
                 </div>
                 
                 <div id="file-info" class="file-info" style="display: none;">
                     <div class="file-details">
                         <i class="fas fa-file-excel file-icon"></i>
                         <div>
-                            <div class="file-name" id="file-name">financial_data.xlsx</div>
+                            <div class="file-name" id="file-name">financial_data.csv</div>
                             <div class="file-size" id="file-size">2.4 MB</div>
                         </div>
                     </div>
                     <div class="controls">
                         <button class="btn" id="process-btn">
-                            <i class="fas fa-cogs"></i> Generate Decision Tree
+                            <i class="fas fa-cogs"></i> Process Data
                         </button>
                         <button class="btn btn-outline" id="change-file-btn">
                             <i class="fas fa-exchange-alt"></i> Change File
@@ -75,6 +73,48 @@
                     <i class="fas fa-exclamation-triangle alert-icon"></i>
                     <div>
                         <strong>Privacy Note:</strong> Your data is processed entirely in your browser. No data is sent to any server - your information stays 100% private and secure.
+                    </div>
+                </div>
+                
+                <div id="config-panel" class="config-panel">
+                    <h3 style="margin-bottom: 20px;">Data Configuration</h3>
+                    
+                    <div class="config-row">
+                        <div class="config-group">
+                            <label for="target-column">Target Column (What to predict)</label>
+                            <select id="target-column"></select>
+                        </div>
+                        
+                        <div class="config-group">
+                            <label for="problem-type">Problem Type</label>
+                            <select id="problem-type">
+                                <option value="classification">Classification</option>
+                                <option value="regression">Regression</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="config-row">
+                        <div class="config-group">
+                            <label>Columns to Ignore</label>
+                            <div class="checkbox-group" id="ignore-columns"></div>
+                        </div>
+                        
+                        <div class="config-group">
+                            <label>Data Preview</label>
+                            <div class="preview-table-container">
+                                <table class="preview-table">
+                                    <thead id="preview-header"></thead>
+                                    <tbody id="preview-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button class="btn btn-success" id="generate-tree-btn">
+                            <i class="fas fa-project-diagram"></i> Generate Decision Tree
+                        </button>
                     </div>
                 </div>
             </div>
@@ -149,12 +189,15 @@
                                 </tbody>
                             </table>
                             
-                            <div style="margin-top: 25px; display: flex; gap: 15px;">
+                            <div style="margin-top: 25px; display: flex; gap: 15px; flex-wrap: wrap;">
                                 <button class="btn btn-success">
                                     <i class="fas fa-download"></i> Download Full Report
                                 </button>
                                 <button class="btn btn-outline" id="regenerate-btn">
                                     <i class="fas fa-redo"></i> Regenerate
+                                </button>
+                                <button class="btn btn-outline" id="new-analysis-btn">
+                                    <i class="fas fa-plus"></i> New Analysis
                                 </button>
                             </div>
                         </div>
@@ -162,7 +205,22 @@
                 </div>
             </div>
         </main>
+        
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="#" class="footer-link"><i class="fas fa-book"></i> Documentation</a>
+                <a href="#" class="footer-link"><i class="fas fa-graduation-cap"></i> Tutorials</a>
+                <a href="#" class="footer-link"><i class="fas fa-database"></i> Example Datasets</a>
+                <a href="#" class="footer-link"><i class="fas fa-shield-alt"></i> Privacy Policy</a>
+                <a href="#" class="footer-link"><i class="fas fa-envelope"></i> Contact</a>
+            </div>
+            <p>&copy; 2023 TreeMind AI. All rights reserved. This is a free tool - no signup required.</p>
+            <p>AI decision trees generated client-side in your browser - your data never leaves your computer.</p>
+        </footer>
     </div>
-<script src="script.js"></script>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
