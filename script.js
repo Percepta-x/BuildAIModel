@@ -1,318 +1,694 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // DOM elements
-    const uploadArea = document.getElementById('upload-area');
-    const fileInput = document.getElementById('file-input');
-    const browseBtn = document.getElementById('browse-btn');
-    const fileInfo = document.getElementById('file-info');
-    const fileName = document.getElementById('file-name');
-    const fileSize = document.getElementById('file-size');
-    const processBtn = document.getElementById('process-btn');
-    const changeFileBtn = document.getElementById('change-file-btn');
-    const resultsContainer = document.getElementById('results-container');
-    const loading = document.getElementById('loading');
-    const regenerateBtn = document.getElementById('regenerate-btn');
-    
-    // Event listeners
-    browseBtn.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', handleFileSelect);
-    changeFileBtn.addEventListener('click', () => fileInput.click());
-    processBtn.addEventListener('click', processFile);
-    regenerateBtn.addEventListener('click', processFile);
-    
-    // Drag and drop events
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        uploadArea.addEventListener(eventName, preventDefaults, false);
-    });
-    
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    
-    ['dragenter', 'dragover'].forEach(eventName => {
-        uploadArea.addEventListener(eventName, () => {
-            uploadArea.classList.add('drag-over');
-        }, false);
-    });
-    
-    ['dragleave', 'drop'].forEach(eventName => {
-        uploadArea.addEventListener(eventName, () => {
-            uploadArea.classList.remove('drag-over');
-        }, false);
-    });
-    
-    uploadArea.addEventListener('drop', handleDrop, false);
-    
-    function handleDrop(e) {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        fileInput.files = files;
-        handleFileSelect();
-    }
-    
-    function handleFileSelect() {
-        if (fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            fileName.textContent = file.name;
-            fileSize.textContent = formatFileSize(file.size);
-            fileInfo.style.display = 'flex';
-            
-            // Update icon based on file type
-            const fileIcon = fileInfo.querySelector('.file-icon');
-            const ext = file.name.split('.').pop().toLowerCase();
-            
-            if (ext === 'csv') {
-                fileIcon.className = 'fas fa-file-csv file-icon';
-            } else if (ext === 'json') {
-                fileIcon.className = 'fas fa-file-code file-icon';
-            } else if (ext === 'xls' || ext === 'xlsx') {
-                fileIcon.className = 'fas fa-file-excel file-icon';
-            } else {
-                fileIcon.className = 'fas fa-file file-icon';
-            }
-        }
-    }
-    
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-    
-    function processFile() {
-        if (!fileInput.files.length) return;
-        
-        // Show loading state
-        loading.style.display = 'block';
-        resultsContainer.style.display = 'none';
-        processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-        processBtn.disabled = true;
-        
-        // Simulate processing delay
-        setTimeout(() => {
-            // Hide loading
-            loading.style.display = 'none';
-            
-            // Generate sample data for visualization
-            generateSampleData();
-            
-            // Show results
-            resultsContainer.style.display = 'block';
-            
-            // Reset button
-            processBtn.innerHTML = '<i class="fas fa-cogs"></i> Generate Decision Tree';
-            processBtn.disabled = false;
-            
-            // Scroll to results
-            resultsContainer.scrollIntoView({ behavior: 'smooth' });
-        }, 2500);
-    }
-    
-    function generateSampleData() {
-        // Update stats
-        document.getElementById('stat-rows').textContent = '1,204';
-        document.getElementById('stat-cols').textContent = '12';
-        document.getElementById('stat-nodes').textContent = '27';
-        document.getElementById('stat-accuracy').textContent = '92.3%';
-        
-        // Populate features table
-        const features = [
-            { name: 'Annual Income', importance: 'High', type: 'Numerical' },
-            { name: 'Credit Score', importance: 'High', type: 'Numerical' },
-            { name: 'Loan Amount', importance: 'High', type: 'Numerical' },
-            { name: 'Employment Status', importance: 'Medium', type: 'Categorical' },
-            { name: 'Debt-to-Income Ratio', importance: 'Medium', type: 'Numerical' },
-            { name: 'Years at Current Job', importance: 'Low', type: 'Numerical' },
-            { name: 'Home Ownership', importance: 'Low', type: 'Categorical' },
-            { name: 'Loan Purpose', importance: 'Low', type: 'Categorical' }
-        ];
-        
-        const featuresBody = document.getElementById('features-body');
-        featuresBody.innerHTML = '';
-        
-        features.forEach(feature => {
-            const row = document.createElement('tr');
-            
-            // Determine importance class
-            let importanceClass = '';
-            if (feature.importance === 'High') importanceClass = 'importance-high';
-            if (feature.importance === 'Medium') importanceClass = 'importance-medium';
-            if (feature.importance === 'Low') importanceClass = 'importance-low';
-            
-            row.innerHTML = `
-                <td>${feature.name}</td>
-                <td><span class="feature-importance ${importanceClass}">${feature.importance}</span></td>
-                <td>${feature.type}</td>
-            `;
-            featuresBody.appendChild(row);
-        });
-        
-        // Generate sample decision tree visualization
-        generateDecisionTree();
-    }
-    
-    function generateDecisionTree() {
-        // Clear previous diagram
-        document.getElementById('tree-diagram').innerHTML = '';
-        
-        const treeData = {
-            name: "Credit Score ≥ 720?",
-            value: "All Data (1,204)",
-            children: [
-                {
-                    name: "Income ≥ $80K?",
-                    value: "Score ≥ 720 (843)",
-                    children: [
-                        {
-                            name: "APPROVED",
-                            value: "Income ≥ $80K (642)",
-                            style: "fill: var(--success);",
-                            leaf: true
-                        },
-                        {
-                            name: "Debt Ratio ≤ 35%?",
-                            value: "Income < $80K (201)",
-                            children: [
-                                {
-                                    name: "APPROVED",
-                                    value: "Debt Ratio ≤ 35% (128)",
-                                    style: "fill: var(--success);",
-                                    leaf: true
-                                },
-                                {
-                                    name: "REVIEW",
-                                    value: "Debt Ratio > 35% (73)",
-                                    style: "fill: var(--warning);",
-                                    leaf: true
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    name: "Income ≥ $60K?",
-                    value: "Score < 720 (361)",
-                    children: [
-                        {
-                            name: "REVIEW",
-                            value: "Income ≥ $60K (189)",
-                            style: "fill: var(--warning);",
-                            leaf: true
-                        },
-                        {
-                            name: "DENIED",
-                            value: "Income < $60K (172)",
-                            style: "fill: var(--danger);",
-                            leaf: true
-                        }
-                    ]
-                }
-            ]
-        };
-        
-        // Set dimensions and margins for diagram
-        const container = document.getElementById('tree-diagram');
-        const width = container.offsetWidth;
-        const height = container.offsetHeight;
-        const margin = {top: 40, right: 120, bottom: 50, left: 120};
-        const innerWidth = width - margin.left - margin.right;
-        const innerHeight = height - margin.top - margin.bottom;
-        
-        // Append SVG object
-        const svg = d3.select("#tree-diagram")
-            .append("svg")
-            .attr("width", width)
-            .attr("height", height)
-            .append("g")
-            .attr("transform", `translate(${margin.left},${margin.top})`);
-        
-        // Create tree layout
-        const treemap = d3.tree().size([innerHeight, innerWidth]);
-        
-        // Assign data to hierarchy
-        const root = d3.hierarchy(treeData);
-        
-        // Create curved links
-        const linkGenerator = d3.linkHorizontal()
-            .x(d => d.y)
-            .y(d => d.x);
-        
-        // Compute tree layout
-        treemap(root);
-        
-        // Add links between nodes
-        svg.selectAll('.link')
-            .data(root.links())
-            .enter()
-            .append('path')
-            .attr('class', 'link')
-            .attr('d', linkGenerator)
-            .attr('fill', 'none')
-            .attr('stroke', '#64748b')
-            .attr('stroke-width', 2)
-            .attr('stroke-opacity', 0.7);
-        
-        // Add each node
-        const node = svg.selectAll('.node')
-            .data(root.descendants())
-            .enter()
-            .append('g')
-            .attr('class', d => `node${d.children ? ' node--internal' : ' node--leaf'}`)
-            .attr('transform', d => `translate(${d.y},${d.x})`);
-        
-        // Add node circles
-        node.append('circle')
-            .attr('r', 20)
-            .attr('fill', d => d.data.style ? d.data.style.split('fill: ')[1].replace(');', '') : '#6366f1')
-            .attr('stroke', d => d.data.leaf ? 'rgba(255,255,255,0.2)' : '#1e293b')
-            .attr('stroke-width', 3)
-            .attr('class', 'node-circle');
-        
-        // Add node text
-        node.append('text')
-            .attr('dy', d => d.data.leaf ? '0.35em' : '-1.5em')
-            .attr('text-anchor', 'middle')
-            .attr('fill', 'white')
-            .attr('font-size', '13px')
-            .attr('font-weight', '600')
-            .text(d => d.data.name)
-            .attr('class', 'node-name');
-        
-        // Add value text
-        node.append('text')
-            .attr('dy', d => d.data.leaf ? '1.5em' : '1.8em')
-            .attr('text-anchor', 'middle')
-            .attr('fill', '#94a3b8')
-            .attr('font-size', '11px')
-            .text(d => d.data.value)
-            .attr('class', 'node-value');
-        
-        // Add hover effects
-        node.on('mouseover', function() {
-            d3.select(this).select('.node-circle')
-                .transition()
-                .duration(200)
-                .attr('r', 24);
-            
-            d3.select(this).select('.node-name')
-                .transition()
-                .duration(200)
-                .attr('font-size', '14px');
-        });
-        
-        node.on('mouseout', function() {
-            d3.select(this).select('.node-circle')
-                .transition()
-                .duration(200)
-                .attr('r', 20);
-            
-            d3.select(this).select('.node-name')
-                .transition()
-                .duration(200)
-                .attr('font-size', '13px');
-        });
-    }
-});
+:root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --secondary: #10b981;
+    --dark-1: #0f172a;
+    --dark-2: #1e293b;
+    --dark-3: #334155;
+    --dark-4: #475569;
+    --light-1: #f1f5f9;
+    --light-2: #e2e8f0;
+    --accent: #8b5cf6;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --success: #10b981;
+    --border-radius: 12px;
+    --transition: all 0.3s ease;
+    --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    --card-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.6);
+}
 
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, var(--dark-1) 0%, var(--dark-2) 100%);
+    color: var(--light-1);
+    min-height: 100vh;
+    padding: 20px;
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+header {
+    text-align: center;
+    padding: 30px 0;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+}
+
+.header-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.1;
+    z-index: -1;
+    background: radial-gradient(circle at top right, var(--accent) 0%, transparent 70%);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.logo-icon {
+    font-size: 2.5rem;
+    color: var(--primary);
+    background: rgba(99, 102, 241, 0.1);
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.2);
+}
+
+h1 {
+    font-size: 2.8rem;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: var(--light-2);
+    max-width: 700px;
+    margin: 0 auto 30px;
+    font-weight: 400;
+    line-height: 1.7;
+}
+
+.card {
+    background: rgba(30, 41, 59, 0.8);
+    border-radius: var(--border-radius);
+    padding: 30px;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    margin-bottom: 30px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--card-shadow);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.card-icon {
+    font-size: 1.8rem;
+    color: var(--primary);
+    background: rgba(99, 102, 241, 0.1);
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+h2 {
+    font-size: 1.8rem;
+    color: var(--light-1);
+    font-weight: 700;
+}
+
+.upload-area {
+    border: 3px dashed var(--dark-4);
+    border-radius: var(--border-radius);
+    padding: 50px 30px;
+    text-align: center;
+    transition: var(--transition);
+    cursor: pointer;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+}
+
+.upload-area:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(79, 70, 229, 0.05);
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.upload-area:hover, .upload-area.drag-over {
+    border-color: var(--primary);
+}
+
+.upload-area:hover:before, .upload-area.drag-over:before {
+    opacity: 1;
+}
+
+.upload-icon {
+    font-size: 4rem;
+    color: var(--dark-4);
+    margin-bottom: 20px;
+    transition: var(--transition);
+}
+
+.upload-area:hover .upload-icon, .upload-area.drag-over .upload-icon {
+    color: var(--primary);
+}
+
+.upload-text h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.upload-text p {
+    color: var(--light-2);
+    margin-bottom: 20px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 14px 30px;
+    font-size: 1.1rem;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.btn:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.2) 100%);
+    opacity: 0;
+    transition: var(--transition);
+    z-index: -1;
+}
+
+.btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-3px);
+    box-shadow: 0 7px 15px rgba(79, 70, 229, 0.4);
+}
+
+.btn:hover:after {
+    opacity: 1;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid var(--primary);
+    color: var(--primary);
+    box-shadow: none;
+}
+
+.btn-outline:after {
+    background: rgba(79, 70, 229, 0.1);
+}
+
+.btn-outline:hover {
+    background: rgba(79, 70, 229, 0.1);
+}
+
+.btn-success {
+    background: var(--success);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+}
+
+.btn-success:hover {
+    background: #0da271;
+    box-shadow: 0 7px 15px rgba(16, 185, 129, 0.4);
+}
+
+.file-info {
+    background: var(--dark-3);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    animation: fadeIn 0.5s ease;
+}
+
+.file-details {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.file-icon {
+    font-size: 2.5rem;
+    color: var(--primary);
+}
+
+.file-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.file-size {
+    color: var(--light-2);
+    font-size: 0.9rem;
+}
+
+.controls {
+    display: flex;
+    gap: 15px;
+}
+
+.alert {
+    padding: 15px;
+    border-radius: var(--border-radius);
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    animation: fadeIn 0.5s ease;
+}
+
+.alert-info {
+    background: rgba(59, 130, 246, 0.15);
+    border-left: 4px solid var(--primary);
+}
+
+.alert-warning {
+    background: rgba(245, 158, 11, 0.15);
+    border-left: 4px solid var(--warning);
+}
+
+.alert-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.alert-info .alert-icon {
+    color: var(--primary);
+}
+
+.alert-warning .alert-icon {
+    color: var(--warning);
+}
+
+.results-container {
+    display: none;
+    margin-top: 30px;
+    animation: fadeIn 0.8s ease;
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.tree-container {
+    height: 600px;
+    background: var(--dark-3);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+#tree-diagram {
+    width: 100%;
+    height: 100%;
+}
+
+.stats-container {
+    background: var(--dark-3);
+    border-radius: var(--border-radius);
+    padding: 25px;
+    overflow-y: auto;
+    max-height: 600px;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: var(--dark-2);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    text-align: center;
+    transition: var(--transition);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 7px 15px rgba(0, 0, 0, 0.3);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    display: inline-block;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+}
+
+.stat-icon-1 {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+}
+
+.stat-icon-2 {
+    background: rgba(139, 92, 246, 0.1);
+    color: var(--accent);
+}
+
+.stat-icon-3 {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+}
+
+.stat-icon-4 {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 15px 0;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stat-label {
+    color: var(--light-2);
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.features-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--dark-2);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.features-table th {
+    background: var(--dark-4);
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.features-table td {
+    padding: 15px;
+    border-bottom: 1px solid var(--dark-4);
+}
+
+.features-table tr:last-child td {
+    border-bottom: none;
+}
+
+.features-table tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.feature-importance {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.importance-high {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.importance-medium {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
+.importance-low {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.footer {
+    text-align: center;
+    padding: 30px 0;
+    color: var(--light-2);
+    font-size: 0.9rem;
+    margin-top: 50px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.footer-link {
+    color: var(--light-2);
+    text-decoration: none;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.footer-link:hover {
+    color: var(--primary);
+}
+
+.loading {
+    display: none;
+    text-align: center;
+    padding: 30px;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(99, 102, 241, 0.2);
+    border-top: 5px solid var(--primary);
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    font-size: 1.2rem;
+    color: var(--light-2);
+}
+
+.config-panel {
+    background: var(--dark-3);
+    border-radius: var(--border-radius);
+    padding: 25px;
+    margin-top: 20px;
+    display: none;
+}
+
+.config-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.config-group {
+    flex: 1;
+    min-width: 300px;
+}
+
+.config-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--light-1);
+}
+
+.config-group select, .config-group input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--dark-2);
+    border: 1px solid var(--dark-4);
+    color: var(--light-1);
+    font-size: 1rem;
+}
+
+.config-group select:focus, .config-group input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px;
+    background: var(--dark-2);
+    border-radius: 8px;
+    border: 1px solid var(--dark-4);
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.checkbox-item input {
+    width: auto;
+}
+
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--dark-2);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    margin-top: 20px;
+    max-height: 300px;
+    overflow-y: auto;
+    display: block;
+}
+
+.preview-table th, .preview-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--dark-4);
+}
+
+.preview-table th {
+    background: var(--dark-4);
+    position: sticky;
+    top: 0;
+}
+
+.preview-table tr:last-child td {
+    border-bottom: none;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 992px) {
+    .results-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tree-container {
+        height: 500px;
+    }
+}
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2.2rem;
+    }
+    
+    .card {
+        padding: 20px;
+    }
+    
+    .file-info {
+        flex-direction: column;
+        gap: 20px;
+        align-items: flex-start;
+    }
+    
+    .controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .upload-area {
+        padding: 30px 15px;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .config-row {
+        flex-direction: column;
+    }
+    
+    .config-group {
+        min-width: 100%;
+    }
+}
