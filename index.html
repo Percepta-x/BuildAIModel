@@ -7,19 +7,12 @@
     <meta name="keywords" content="AI decision tree, machine learning, data visualization, free tool, no signup, data analysis, predictive modeling">
     <meta name="author" content="TreeMind AI">
     <title>Tree.Mind - Free AI Decision Tree Generator | No Signup Required</title>
-    <img src="icon.png" alt="Logo">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/regression@2.0.1/dist/regression.min.js"></script>
 </head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-WMD85ZS44X"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-WMD85ZS44X');
-</script>
 <body>
     <div class="container">
         <header>
@@ -192,6 +185,7 @@
                                         <th>Feature</th>
                                         <th>Importance</th>
                                         <th>Type</th>
+                                        <th>Range/Values</th>
                                     </tr>
                                 </thead>
                                 <tbody id="features-body">
@@ -199,10 +193,12 @@
                                 </tbody>
                             </table>
                             
+                            <h3 style="margin: 30px 0 15px;">Make Prediction</h3>
+                            <div id="prediction-form" class="prediction-form">
+                                <!-- Prediction form will be generated here -->
+                            </div>
+                            
                             <div style="margin-top: 25px; display: flex; gap: 15px; flex-wrap: wrap;">
-                                <button class="btn btn-success">
-                                    <i class="fas fa-download"></i> Download Full Report
-                                </button>
                                 <button class="btn btn-outline" id="regenerate-btn">
                                     <i class="fas fa-redo"></i> Regenerate
                                 </button>
@@ -212,13 +208,29 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <div class="additional-analytics">
+                        <h3>Advanced Analytics</h3>
+                        <div class="analytics-grid">
+                            <div class="analytics-card">
+                                <h4>Target Distribution</h4>
+                                <div id="target-distribution"></div>
+                            </div>
+                            <div class="analytics-card">
+                                <h4>Feature Correlations</h4>
+                                <div id="feature-correlations"></div>
+                            </div>
+                            <div class="analytics-card">
+                                <h4>Top Feature Importance</h4>
+                                <div id="feature-importance"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
