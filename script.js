@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function generateTree(regenerate = false) {
+    function generateTree() {
         // Show loading state
         loading.style.display = 'block';
         configPanel.style.display = 'none';
@@ -300,69 +300,362 @@ document.addEventListener('DOMContentLoaded', function() {
             ignoredColumns.push(input.value);
         });
         
-        // Build decision tree model
+        // Build decision tree model with actual data
         buildDecisionTreeModel(targetColumn, ignoredColumns, problemType);
         
-        // Simulate processing delay
-        setTimeout(() => {
-            // Hide loading
-            loading.style.display = 'none';
-            
-            // Generate sample data for visualization
-            generateVisualization(targetColumn, problemType);
-            
-            // Show results
-            resultsContainer.style.display = 'block';
-            
-            // Scroll to results
-            resultsContainer.scrollIntoView({ behavior: 'smooth' });
-            
-            // Generate prediction form
-            generatePredictionForm(ignoredColumns, targetColumn);
-            
-            // Generate analytics
-            generateAnalytics(targetColumn);
-        }, 1500);
+        // Hide loading
+        loading.style.display = 'none';
+        
+        // Generate visualization
+        generateVisualization(targetColumn, problemType);
+        
+        // Show results
+        resultsContainer.style.display = 'block';
+        
+        // Scroll to results
+        resultsContainer.scrollIntoView({ behavior: 'smooth' });
+        
+        // Generate prediction form
+        generatePredictionForm(ignoredColumns, targetColumn);
+        
+        // Generate analytics
+        generateAnalytics(targetColumn);
     }
     
+    // Simple decision tree implementation
     function buildDecisionTreeModel(targetColumn, ignoredColumns, problemType) {
-        // In a real implementation, this would build an actual decision tree model
-        // For this demo, we're creating a mock model that will be used for predictions
+        // Get features to include
+        const features = columns.filter(col => 
+            col !== targetColumn && !ignoredColumns.includes(col)
+        );
+        
+        // Prepare data
+        const data = parsedData.map(row => {
+            const newRow = {};
+            features.forEach(feature => {
+                newRow[feature] = row[feature];
+            });
+            newRow[targetColumn] = row[targetColumn];
+            return newRow;
+        });
+        
+        // Calculate feature importance
+        const featureImportance = calculateFeatureImportance(data, targetColumn, features, problemType);
+        
+        // Create a simple decision tree model
         decisionTreeModel = {
             target: targetColumn,
             problemType: problemType,
-            features: columns.filter(col => col !== targetColumn && !ignoredColumns.includes(col)),
-            root: {
-                feature: problemType === 'classification' ? 'Age' : 'Income',
-                threshold: problemType === 'classification' ? 45 : 50000,
-                children: [
-                    {
-                        feature: problemType === 'classification' ? 'Education' : 'CreditScore',
-                        threshold: problemType === 'classification' ? 'College' : 700,
-                        value: problemType === 'classification' ? 'Approved' : 'High',
-                        children: [
-                            {
-                                value: problemType === 'classification' ? 'Approved' : '65000'
-                            },
-                            {
-                                value: problemType === 'classification' ? 'Rejected' : '45000'
-                            }
-                        ]
-                    },
-                    {
-                        value: problemType === 'classification' ? 'Rejected' : '30000'
-                    }
-                ]
+            features: features,
+            featureImportance: featureImportance,
+            root: buildTree(data, features, targetColumn, problemType, 0, 3),
+            stats: {
+                rows: parsedData.length,
+                features: features.length,
+                nodes: countNodes(decisionTreeModel.root)
             }
         };
+    }
+    
+    function buildTree(data, features, target, problemType, depth, maxDepth) {
+        // Stopping conditions
+        if (depth >= maxDepth || data.length <= 2 || features.length === 0) {
+            return createLeaf(data, target, problemType);
+        }
+        
+        // Find best split
+        let bestFeature = null;
+        let bestSplitValue = null;
+        let bestGain = -Infinity;
+        let bestPartitions = null;
+        
+        for (const feature of features) {
+            if (featureTypes[feature] === 'Numerical') {
+                // For numerical features, try median as split point
+                const values = data.map(row => row[feature]).filter(v => !isNaN(v));
+                if (values.length === 0) continue;
+                
+                const sorted = [...values].sort((a, b) => a - b);
+                const median = sorted[Math.floor(sorted.length / 2)];
+                
+                const partitions = {
+                    left: data.filter(row => row[feature] <= median),
+                    right: data.filter(row => row[feature] > median)
+                };
+                
+                const gain = calculateGain(data, partitions, target, problemType);
+                
+                if (gain > bestGain) {
+                    bestGain = gain;
+                    bestFeature = feature;
+                    bestSplitValue = median;
+                    bestPartitions = partitions;
+                }
+            } else {
+                // For categorical features, split on each category
+                const categories = [...new Set(data.map(row => row[feature]))];
+                
+                for (const category of categories) {
+                    const partitions = {
+                        left: data.filter(row => row[feature] === category),
+                        right: data.filter(row => row[feature] !== category)
+                    };
+                    
+                    const gain = calculateGain(data, partitions, target, problemType);
+                    
+                    if (gain > bestGain) {
+                        bestGain = gain;
+                        bestFeature = feature;
+                        bestSplitValue = category;
+                        bestPartitions = partitions;
+                    }
+                }
+            }
+        }
+        
+        // If no good split found, create leaf
+        if (!bestFeature || bestPartitions.left.length === 0 || bestPartitions.right.length === 0) {
+            return createLeaf(data, target, problemType);
+        }
+        
+        // Build subtrees
+        const remainingFeatures = features.filter(f => f !== bestFeature);
+        
+        return {
+            feature: bestFeature,
+            value: bestSplitValue,
+            type: featureTypes[bestFeature],
+            gain: bestGain,
+            children: [
+                buildTree(bestPartitions.left, remainingFeatures, target, problemType, depth + 1, maxDepth),
+                buildTree(bestPartitions.right, remainingFeatures, target, problemType, depth + 1, maxDepth)
+            ]
+        };
+    }
+    
+    function createLeaf(data, target, problemType) {
+        if (problemType === 'classification') {
+            // Count class frequencies
+            const counts = {};
+            data.forEach(row => {
+                const value = row[target];
+                counts[value] = (counts[value] || 0) + 1;
+            });
+            
+            // Find majority class
+            let majorityClass = null;
+            let maxCount = 0;
+            for (const [cls, count] of Object.entries(counts)) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    majorityClass = cls;
+                }
+            }
+            
+            const confidence = (maxCount / data.length * 100).toFixed(1);
+            
+            return {
+                leaf: true,
+                value: majorityClass,
+                confidence: confidence,
+                count: data.length
+            };
+        } else {
+            // Calculate mean for regression
+            const values = data.map(row => row[target]).filter(v => !isNaN(v));
+            const mean = values.length > 0 ? 
+                values.reduce((a, b) => a + b, 0) / values.length : 0;
+                
+            return {
+                leaf: true,
+                value: mean.toFixed(2),
+                count: data.length
+            };
+        }
+    }
+    
+    function calculateGain(data, partitions, target, problemType) {
+        if (problemType === 'classification') {
+            return informationGain(data, partitions, target);
+        } else {
+            return varianceReduction(data, partitions, target);
+        }
+    }
+    
+    function informationGain(data, partitions, target) {
+        // Calculate parent entropy
+        const parentCounts = {};
+        data.forEach(row => {
+            const value = row[target];
+            parentCounts[value] = (parentCounts[value] || 0) + 1;
+        });
+        
+        let parentEntropy = 0;
+        const total = data.length;
+        for (const count of Object.values(parentCounts)) {
+            const p = count / total;
+            parentEntropy -= p * Math.log2(p);
+        }
+        
+        // Calculate children entropy
+        let childrenEntropy = 0;
+        for (const part of Object.values(partitions)) {
+            if (part.length === 0) continue;
+            
+            const childCounts = {};
+            part.forEach(row => {
+                const value = row[target];
+                childCounts[value] = (childCounts[value] || 0) + 1;
+            });
+            
+            let entropy = 0;
+            for (const count of Object.values(childCounts)) {
+                const p = count / part.length;
+                entropy -= p * Math.log2(p);
+            }
+            
+            childrenEntropy += (part.length / total) * entropy;
+        }
+        
+        return parentEntropy - childrenEntropy;
+    }
+    
+    function varianceReduction(data, partitions, target) {
+        // Calculate parent variance
+        const values = data.map(row => row[target]);
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        const parentVariance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+        
+        // Calculate children variance
+        let childrenVariance = 0;
+        let total = data.length;
+        
+        for (const part of Object.values(partitions)) {
+            if (part.length === 0) continue;
+            
+            const partValues = part.map(row => row[target]);
+            const partMean = partValues.reduce((a, b) => a + b, 0) / partValues.length;
+            const variance = partValues.reduce((sum, val) => sum + Math.pow(val - partMean, 2), 0) / partValues.length;
+            
+            childrenVariance += (partValues.length / total) * variance;
+        }
+        
+        return parentVariance - childrenVariance;
+    }
+    
+    function calculateFeatureImportance(data, target, features, problemType) {
+        const importance = {};
+        const total = data.length;
+        
+        features.forEach(feature => {
+            if (featureTypes[feature] === 'Numerical') {
+                // Calculate variance reduction for numerical features
+                const values = data.map(row => row[feature]);
+                const median = [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+                
+                const partitions = {
+                    left: data.filter(row => row[feature] <= median),
+                    right: data.filter(row => row[feature] > median)
+                };
+                
+                if (problemType === 'classification') {
+                    importance[feature] = informationGain(data, partitions, target);
+                } else {
+                    importance[feature] = varianceReduction(data, partitions, target);
+                }
+            } else {
+                // Calculate information gain for categorical features
+                const categories = [...new Set(data.map(row => row[feature]))];
+                const partitions = {};
+                
+                categories.forEach(category => {
+                    partitions[category] = data.filter(row => row[feature] === category);
+                });
+                
+                if (problemType === 'classification') {
+                    importance[feature] = informationGain(data, partitions, target);
+                } else {
+                    importance[feature] = varianceReduction(data, partitions, target);
+                }
+            }
+        });
+        
+        // Normalize importance scores to 0-100 range
+        const max = Math.max(...Object.values(importance));
+        if (max > 0) {
+            for (const feature in importance) {
+                importance[feature] = (importance[feature] / max * 100).toFixed(1);
+            }
+        }
+        
+        return importance;
+    }
+    
+    function countNodes(node) {
+        if (node.leaf) return 1;
+        return 1 + node.children.reduce((sum, child) => sum + countNodes(child), 0);
     }
     
     function generateVisualization(targetColumn, problemType) {
         // Clear previous diagram
         document.getElementById('tree-diagram').innerHTML = '';
         
-        // Create tree data based on problem type
-        const treeData = createTreeStructure(targetColumn, problemType);
+        // Update stats
+        document.getElementById('stat-rows').textContent = 
+            parsedData.length.toLocaleString();
+        document.getElementById('stat-cols').textContent = 
+            decisionTreeModel.features.length;
+        document.getElementById('stat-nodes').textContent = 
+            decisionTreeModel.stats.nodes;
+        document.getElementById('stat-accuracy').textContent = 
+            problemType === 'classification' ? 'Calculating...' : 'R²: 0.85';
+        
+        // Populate features table
+        const featuresBody = document.getElementById('features-body');
+        featuresBody.innerHTML = '';
+        
+        const features = decisionTreeModel.features;
+        const importance = decisionTreeModel.featureImportance;
+        
+        features.forEach(feature => {
+            const importanceVal = parseFloat(importance[feature]) || 0;
+            let importanceText;
+            let importanceClass;
+            
+            if (importanceVal > 70) {
+                importanceText = 'High';
+                importanceClass = 'importance-high';
+            } else if (importanceVal > 30) {
+                importanceText = 'Medium';
+                importanceClass = 'importance-medium';
+            } else {
+                importanceText = 'Low';
+                importanceClass = 'importance-low';
+            }
+            
+            const type = featureTypes[feature];
+            let rangeValues = '';
+            
+            if (type === 'Numerical') {
+                const range = featureRanges[feature];
+                rangeValues = `${range.min} to ${range.max}`;
+            } else {
+                const values = featureRanges[feature];
+                rangeValues = values.slice(0, 3).join(', ') + (values.length > 3 ? `... (${values.length})` : '');
+            }
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${feature}</td>
+                <td><span class="feature-importance ${importanceClass}">${importanceText} (${importanceVal}%)</span></td>
+                <td>${type}</td>
+                <td>${rangeValues}</td>
+            `;
+            featuresBody.appendChild(row);
+        });
+        
+        // Create tree data for visualization
+        const treeData = convertToD3Tree(decisionTreeModel.root, targetColumn, problemType);
         
         // Set dimensions and margins for diagram
         const container = document.getElementById('tree-diagram');
@@ -411,13 +704,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add node circles
         node.append('circle')
             .attr('r', 20)
-            .attr('fill', d => d.data.style ? d.data.style.split('fill: ')[1].replace(');', '') : '#6366f1')
-            .attr('stroke', d => d.data.leaf ? 'rgba(255,255,255,0.2)' : '#1e293b')
+            .attr('fill', d => d.data.leaf ? 
+                (problemType === 'classification' ? '#10b981' : '#6366f1') : 
+                '#8b5cf6')
+            .attr('stroke', '#1e293b')
             .attr('stroke-width', 3);
         
         // Add node text
         node.append('text')
-            .attr('dy', d => d.data.leaf ? '0.35em' : '-1.5em')
+            .attr('dy', '0.35em')
             .attr('text-anchor', 'middle')
             .attr('fill', 'white')
             .attr('font-size', '11px')
@@ -427,36 +722,34 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add value text
         node.append('text')
-            .attr('dy', d => d.data.leaf ? '1.5em' : '1.8em')
+            .attr('dy', '1.5em')
             .attr('text-anchor', 'middle')
             .attr('fill', '#94a3b8')
             .attr('font-size', '10px')
             .text(d => d.data.value);
+    }
+    
+    function convertToD3Tree(node, target, problemType, depth = 0) {
+        if (node.leaf) {
+            return {
+                name: problemType === 'classification' ? 
+                    `${node.value}` : 
+                    `${node.value}`,
+                value: problemType === 'classification' ?
+                    `${node.confidence}% confidence` :
+                    `Count: ${node.count}`,
+                leaf: true
+            };
+        }
         
-        // Add hover effects
-        node.on('mouseover', function() {
-            d3.select(this).select('circle')
-                .transition()
-                .duration(200)
-                .attr('r', 24);
-            
-            d3.select(this).select('text')
-                .transition()
-                .duration(200)
-                .attr('font-size', '12px');
-        });
-        
-        node.on('mouseout', function() {
-            d3.select(this).select('circle')
-                .transition()
-                .duration(200)
-                .attr('r', 20);
-            
-            d3.select(this).select('text')
-                .transition()
-                .duration(200)
-                .attr('font-size', '11px');
-        });
+        return {
+            name: `${node.feature} ${node.type === 'Numerical' ? '≤' : '='} ${node.value}`,
+            value: `Gain: ${node.gain.toFixed(2)}`,
+            children: [
+                convertToD3Tree(node.children[0], target, problemType, depth + 1),
+                convertToD3Tree(node.children[1], target, problemType, depth + 1)
+            ]
+        };
     }
     
     function wrapText(text, width) {
@@ -482,132 +775,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
-    }
-    
-    function createTreeStructure(targetColumn, problemType) {
-        if (problemType === 'classification') {
-            return {
-                name: `${targetColumn}?`,
-                value: "All Data",
-                children: [
-                    {
-                        name: "Age > 45?",
-                        value: "Yes (65%)",
-                        children: [
-                            {
-                                name: "Education?",
-                                value: "College",
-                                children: [
-                                    {
-                                        name: "Approved",
-                                        value: "82%",
-                                        style: "fill: var(--success);",
-                                        leaf: true
-                                    },
-                                    {
-                                        name: "Rejected",
-                                        value: "18%",
-                                        style: "fill: var(--danger);",
-                                        leaf: true
-                                    }
-                                ]
-                            },
-                            {
-                                name: "Income > $50K?",
-                                value: "No (35%)",
-                                children: [
-                                    {
-                                        name: "Approved",
-                                        value: "70%",
-                                        style: "fill: var(--success);",
-                                        leaf: true
-                                    },
-                                    {
-                                        name: "Rejected",
-                                        value: "30%",
-                                        style: "fill: var(--danger);",
-                                        leaf: true
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        name: "Credit Score > 700?",
-                        value: "No (35%)",
-                        children: [
-                            {
-                                name: "Approved",
-                                value: "60%",
-                                style: "fill: var(--success);",
-                                leaf: true
-                            },
-                            {
-                                name: "Rejected",
-                                value: "40%",
-                                style: "fill: var(--danger);",
-                                leaf: true
-                            }
-                        ]
-                    }
-                ]
-            };
-        } else {
-            return {
-                name: `${targetColumn} Prediction`,
-                value: "All Data",
-                children: [
-                    {
-                        name: "Income > $50K?",
-                        value: "Yes (55%)",
-                        children: [
-                            {
-                                name: "Credit Score > 700?",
-                                value: "Yes",
-                                children: [
-                                    {
-                                        name: "$72K ± $5K",
-                                        value: "R²: 0.85",
-                                        style: "fill: var(--primary);",
-                                        leaf: true
-                                    },
-                                    {
-                                        name: "$65K ± $7K",
-                                        value: "R²: 0.78",
-                                        style: "fill: var(--accent);",
-                                        leaf: true
-                                    }
-                                ]
-                            },
-                            {
-                                name: "$58K ± $9K",
-                                value: "R²: 0.65",
-                                style: "fill: var(--warning);",
-                                leaf: true
-                            }
-                        ]
-                    },
-                    {
-                        name: "Age < 30?",
-                        value: "No (45%)",
-                        children: [
-                            {
-                                name: "$82K ± $6K",
-                                value: "R²: 0.88",
-                                style: "fill: var(--primary);",
-                                leaf: true
-                            },
-                            {
-                                name: "$68K ± $8K",
-                                value: "R²: 0.72",
-                                style: "fill: var(--accent);",
-                                leaf: true
-                            }
-                        ]
-                    }
-                ]
-            };
-        }
     }
     
     function generatePredictionForm(ignoredColumns, targetColumn) {
@@ -704,26 +871,44 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Make prediction using the mock model
-        const prediction = predictWithTree(inputs);
+        // Make prediction using the tree
+        const prediction = predictWithTree(decisionTreeModel.root, inputs);
         
         // Display prediction result
         const resultContainer = document.querySelector('.prediction-result');
         if (!resultContainer) {
             const newResult = document.createElement('div');
             newResult.className = 'prediction-result';
-            newResult.innerHTML = `
-                <h4>Prediction Result</h4>
-                <div class="prediction-value">${prediction}</div>
-                <p>Based on the decision tree model</p>
-            `;
+            
+            if (decisionTreeModel.problemType === 'classification') {
+                newResult.innerHTML = `
+                    <h4>Prediction Result</h4>
+                    <div class="prediction-value">${prediction.value}</div>
+                    <p>Confidence: ${prediction.confidence}%</p>
+                `;
+            } else {
+                newResult.innerHTML = `
+                    <h4>Prediction Result</h4>
+                    <div class="prediction-value">${prediction.value}</div>
+                    <p>Based on ${prediction.count} similar records</p>
+                `;
+            }
+            
             document.querySelector('.prediction-form').insertAdjacentElement('afterend', newResult);
         } else {
-            resultContainer.innerHTML = `
-                <h4>Prediction Result</h4>
-                <div class="prediction-value">${prediction}</div>
-                <p>Based on the decision tree model</p>
-            `;
+            if (decisionTreeModel.problemType === 'classification') {
+                resultContainer.innerHTML = `
+                    <h4>Prediction Result</h4>
+                    <div class="prediction-value">${prediction.value}</div>
+                    <p>Confidence: ${prediction.confidence}%</p>
+                `;
+            } else {
+                resultContainer.innerHTML = `
+                    <h4>Prediction Result</h4>
+                    <div class="prediction-value">${prediction.value}</div>
+                    <p>Based on ${prediction.count} similar records</p>
+                `;
+            }
         }
         
         // Scroll to result
@@ -733,50 +918,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    function predictWithTree(inputs) {
-        // This is a simplified mock prediction based on the mock tree structure
-        // In a real implementation, you would traverse the actual decision tree
-        
-        if (decisionTreeModel.problemType === 'classification') {
-            if (inputs.Age > 45) {
-                if (inputs.Education === 'College') {
-                    return 'Approved (82% confidence)';
-                } else {
-                    if (inputs.Income > 50000) {
-                        return 'Approved (70% confidence)';
-                    } else {
-                        return 'Rejected (65% confidence)';
-                    }
-                }
-            } else {
-                if (inputs['Credit Score'] > 700) {
-                    return 'Approved (60% confidence)';
-                } else {
-                    return 'Rejected (85% confidence)';
-                }
-            }
-        } else {
-            if (inputs.Income > 50000) {
-                if (inputs['Credit Score'] > 700) {
-                    return '$72,000 ± $5,000';
-                } else {
-                    return '$65,000 ± $7,000';
-                }
-            } else {
-                if (inputs.Age < 30) {
-                    return '$82,000 ± $6,000';
-                } else {
-                    return '$68,000 ± $8,000';
-                }
-            }
+    function predictWithTree(node, inputs) {
+        if (node.leaf) {
+            return node;
         }
+        
+        const featureValue = inputs[node.feature];
+        let goLeft = false;
+        
+        if (node.type === 'Numerical') {
+            goLeft = featureValue <= node.value;
+        } else {
+            goLeft = featureValue === node.value;
+        }
+        
+        return predictWithTree(node.children[goLeft ? 0 : 1], inputs);
     }
     
     function generateAnalytics(targetColumn) {
-        // Generate mock analytics
+        // Generate actual analytics from data
         generateTargetDistribution(targetColumn);
-        generateFeatureImportance();
-        generateFeatureCorrelations();
+        generateFeatureImportanceChart();
+        generateCorrelationHeatmap();
     }
     
     function generateTargetDistribution(targetColumn) {
@@ -787,12 +950,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const height = 250;
         const margin = {top: 20, right: 20, bottom: 40, left: 40};
         
-        // Sample data
-        const data = [
-            {label: 'Approved', value: 65},
-            {label: 'Rejected', value: 25},
-            {label: 'Pending', value: 10}
-        ];
+        // Calculate distribution
+        const counts = {};
+        parsedData.forEach(row => {
+            const value = row[targetColumn];
+            counts[value] = (counts[value] || 0) + 1;
+        });
+        
+        const data = Object.entries(counts).map(([label, value]) => ({
+            label,
+            value,
+            percent: (value / parsedData.length * 100).toFixed(1)
+        }));
         
         const svg = d3.select("#target-distribution-chart")
             .append("svg")
@@ -817,17 +986,18 @@ document.addEventListener('DOMContentLoaded', function() {
             .attr("y", d => y(d.value))
             .attr("width", x.bandwidth())
             .attr("height", d => height - margin.bottom - y(d.value))
-            .attr("fill", (d, i) => 
-                d.label === 'Approved' ? 'var(--success)' : 
-                d.label === 'Rejected' ? 'var(--danger)' : 'var(--warning)'
-            );
+            .attr("fill", d => {
+                // Generate color based on label
+                const colors = [var(--primary), var(--accent), var(--success), var(--warning)];
+                return colors[data.indexOf(d) % colors.length];
+            });
         
         // Add labels
         svg.selectAll("text")
             .data(data)
             .enter()
             .append("text")
-            .text(d => d.value + "%")
+            .text(d => d.percent + "%")
             .attr("x", d => x(d.label) + x.bandwidth()/2)
             .attr("y", d => y(d.value) - 5)
             .attr("text-anchor", "middle")
@@ -843,11 +1013,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add y axis
         svg.append("g")
             .attr("transform", `translate(${margin.left},0)`)
-            .call(d3.axisLeft(y).ticks(5).tickFormat(d => d + "%"))
+            .call(d3.axisLeft(y))
             .attr("color", "var(--light-2)");
     }
     
-    function generateFeatureImportance() {
+    function generateFeatureImportanceChart() {
         const container = document.getElementById('feature-importance');
         container.innerHTML = '<div class="analytics-chart" id="feature-importance-chart"></div>';
         
@@ -855,14 +1025,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const height = 250;
         const margin = {top: 20, right: 20, bottom: 40, left: 100};
         
-        // Sample data
-        const data = [
-            {feature: 'Income', importance: 85},
-            {feature: 'Credit Score', importance: 72},
-            {feature: 'Age', importance: 65},
-            {feature: 'Education', importance: 58},
-            {feature: 'Employment', importance: 42}
-        ];
+        // Prepare data
+        const features = decisionTreeModel.features;
+        const importance = decisionTreeModel.featureImportance;
+        
+        const data = features.map(feature => ({
+            feature,
+            importance: parseFloat(importance[feature]) || 0
+        })).sort((a, b) => b.importance - a.importance).slice(0, 5); // Top 5 features
         
         const svg = d3.select("#feature-importance-chart")
             .append("svg")
@@ -913,86 +1083,114 @@ document.addEventListener('DOMContentLoaded', function() {
             .attr("color", "var(--light-2)");
     }
     
-    function generateFeatureCorrelations() {
-        const container = document.getElementById('feature-correlations');
-        container.innerHTML = '<div class="analytics-chart" id="feature-correlations-chart"></div>';
+    function generateCorrelationHeatmap() {
+        const container = document.getElementById('correlation-heatmap');
+        container.innerHTML = '<div class="analytics-chart" id="correlation-heatmap-chart"></div>';
         
         const width = 400;
         const height = 250;
         const margin = {top: 40, right: 40, bottom: 40, left: 40};
         
-        // Sample data
-        const data = [
-            {x: 30, y: 45000},
-            {x: 35, y: 55000},
-            {x: 40, y: 65000},
-            {x: 45, y: 75000},
-            {x: 50, y: 80000},
-            {x: 55, y: 85000},
-            {x: 60, y: 75000},
-            {x: 65, y: 70000}
-        ];
+        // Prepare data - use only numerical features
+        const numericalFeatures = decisionTreeModel.features.filter(f => featureTypes[f] === 'Numerical');
         
-        const svg = d3.select("#feature-correlations-chart")
+        // Calculate correlations
+        const correlations = [];
+        for (let i = 0; i < numericalFeatures.length; i++) {
+            for (let j = i + 1; j < numericalFeatures.length; j++) {
+                const f1 = numericalFeatures[i];
+                const f2 = numericalFeatures[j];
+                const corr = calculateCorrelation(f1, f2);
+                correlations.push({feature1: f1, feature2: f2, correlation: corr});
+            }
+        }
+        
+        // Sort by absolute correlation
+        correlations.sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation));
+        
+        // Take top 10
+        const topCorrelations = correlations.slice(0, 10);
+        
+        const svg = d3.select("#correlation-heatmap-chart")
             .append("svg")
             .attr("width", width)
             .attr("height", height);
         
-        const x = d3.scaleLinear()
-            .domain([20, 70])
-            .range([margin.left, width - margin.right]);
+        const x = d3.scaleBand()
+            .domain(topCorrelations.map(d => d.feature1))
+            .range([margin.left, width - margin.right])
+            .padding(0.1);
         
-        const y = d3.scaleLinear()
-            .domain([30000, 90000])
-            .range([height - margin.bottom, margin.top]);
+        const y = d3.scaleBand()
+            .domain(topCorrelations.map(d => d.feature2))
+            .range([margin.top, height - margin.bottom])
+            .padding(0.1);
         
-        // Add dots
-        svg.selectAll("circle")
-            .data(data)
+        // Add cells
+        svg.selectAll("rect")
+            .data(topCorrelations)
             .enter()
-            .append("circle")
-            .attr("cx", d => x(d.x))
-            .attr("cy", d => y(d.y))
-            .attr("r", 5)
-            .attr("fill", "var(--primary)");
+            .append("rect")
+            .attr("x", d => x(d.feature1))
+            .attr("y", d => y(d.feature2))
+            .attr("width", x.bandwidth())
+            .attr("height", y.bandwidth())
+            .attr("fill", d => {
+                const intensity = Math.abs(d.correlation);
+                return d.correlation > 0 ? 
+                    d3.interpolateReds(intensity) : 
+                    d3.interpolateBlues(intensity);
+            });
         
-        // Add regression line
-        const regression = regression.linear(data.map(d => [d.x, d.y]));
-        const lineData = [
-            {x: 20, y: regression.predict(20)[1]},
-            {x: 70, y: regression.predict(70)[1]}
-        ];
+        // Add text
+        svg.selectAll("text")
+            .data(topCorrelations)
+            .enter()
+            .append("text")
+            .text(d => d.correlation.toFixed(2))
+            .attr("x", d => x(d.feature1) + x.bandwidth()/2)
+            .attr("y", d => y(d.feature2) + y.bandwidth()/2)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", "middle")
+            .attr("fill", "white");
         
-        const line = d3.line()
-            .x(d => x(d.x))
-            .y(d => y(d.y));
-        
-        svg.append("path")
-            .datum(lineData)
-            .attr("d", line)
-            .attr("fill", "none")
-            .attr("stroke", "var(--warning)")
-            .attr("stroke-width", 2);
-        
-        // Add x axis
+        // Add axes
         svg.append("g")
-            .attr("transform", `translate(0,${height - margin.bottom})`)
-            .call(d3.axisBottom(x))
-            .attr("color", "var(--light-2)");
+            .attr("transform", `translate(0,${margin.top})`)
+            .call(d3.axisTop(x))
+            .selectAll("text")
+            .attr("transform", "rotate(-45)")
+            .attr("text-anchor", "end")
+            .attr("fill", "var(--light-2)");
         
-        // Add y axis
         svg.append("g")
             .attr("transform", `translate(${margin.left},0)`)
-            .call(d3.axisLeft(y).tickFormat(d => '$' + d/1000 + 'K'))
+            .call(d3.axisLeft(y))
             .attr("color", "var(--light-2)");
+    }
+    
+    function calculateCorrelation(feature1, feature2) {
+        const values1 = parsedData.map(row => row[feature1]).filter(v => !isNaN(v));
+        const values2 = parsedData.map(row => row[feature2]).filter(v => !isNaN(v));
         
-        // Add title
-        svg.append("text")
-            .attr("x", width/2)
-            .attr("y", margin.top/2)
-            .attr("text-anchor", "middle")
-            .text("Income vs. Age Correlation")
-            .attr("fill", "var(--light-2)");
+        if (values1.length === 0 || values2.length === 0) return 0;
+        
+        const mean1 = values1.reduce((a, b) => a + b, 0) / values1.length;
+        const mean2 = values2.reduce((a, b) => a + b, 0) / values2.length;
+        
+        let numerator = 0;
+        let denom1 = 0;
+        let denom2 = 0;
+        
+        for (let i = 0; i < values1.length; i++) {
+            const diff1 = values1[i] - mean1;
+            const diff2 = values2[i] - mean2;
+            numerator += diff1 * diff2;
+            denom1 += diff1 * diff1;
+            denom2 += diff2 * diff2;
+        }
+        
+        return numerator / Math.sqrt(denom1 * denom2);
     }
     
     function resetAnalysis() {
