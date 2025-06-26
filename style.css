@@ -360,6 +360,31 @@ h2 {
 #tree-diagram {
     width: 100%;
     height: 100%;
+    overflow: auto;
+}
+
+.node circle {
+    fill: var(--primary);
+    stroke: var(--dark-1);
+    stroke-width: 2px;
+}
+
+.node text {
+    font: 12px 'Inter', sans-serif;
+    fill: white;
+    text-anchor: middle;
+    dominant-baseline: middle;
+}
+
+.node .node-value {
+    font: 10px 'Inter', sans-serif;
+    fill: var(--light-2);
+}
+
+.link {
+    fill: none;
+    stroke: var(--dark-4);
+    stroke-width: 2px;
 }
 
 .stats-container {
@@ -447,6 +472,7 @@ h2 {
     background: var(--dark-2);
     border-radius: var(--border-radius);
     overflow: hidden;
+    margin-bottom: 20px;
 }
 
 .features-table th {
@@ -492,34 +518,99 @@ h2 {
     color: #10b981;
 }
 
-.footer {
-    text-align: center;
-    padding: 30px 0;
-    color: var(--light-2);
+.prediction-form {
+    background: var(--dark-2);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.prediction-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.prediction-group {
+    margin-bottom: 10px;
+}
+
+.prediction-group label {
+    display: block;
+    margin-bottom: 5px;
     font-size: 0.9rem;
-    margin-top: 50px;
+    color: var(--light-2);
+}
+
+.prediction-group input, .prediction-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--dark-3);
+    border: 1px solid var(--dark-4);
+    color: var(--light-1);
+    font-size: 1rem;
+}
+
+.prediction-group input:focus, .prediction-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.prediction-result {
+    background: var(--dark-2);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-top: 20px;
+    text-align: center;
+    border-left: 4px solid var(--success);
+}
+
+.prediction-result h4 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.prediction-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin: 10px 0;
+}
+
+.additional-analytics {
+    margin-top: 30px;
+    padding-top: 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.footer-links {
-    display: flex;
-    justify-content: center;
-    gap: 25px;
-    margin: 20px 0;
-    flex-wrap: wrap;
+.additional-analytics h3 {
+    margin-bottom: 20px;
 }
 
-.footer-link {
-    color: var(--light-2);
-    text-decoration: none;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
 }
 
-.footer-link:hover {
-    color: var(--primary);
+.analytics-card {
+    background: var(--dark-2);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    min-height: 300px;
+}
+
+.analytics-card h4 {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--dark-4);
+}
+
+.analytics-chart {
+    width: 100%;
+    height: 250px;
 }
 
 .loading {
@@ -645,7 +736,7 @@ h2 {
     to { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1200px) {
     .results-grid {
         grid-template-columns: 1fr;
     }
@@ -690,5 +781,9 @@ h2 {
     
     .config-group {
         min-width: 100%;
+    }
+    
+    .prediction-row {
+        grid-template-columns: 1fr;
     }
 }
