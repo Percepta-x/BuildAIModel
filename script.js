@@ -939,7 +939,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Generate actual analytics from data
         generateTargetDistribution(targetColumn);
         generateFeatureImportanceChart();
-        generateCorrelationHeatmap();
     }
     
     function generateTargetDistribution(targetColumn) {
@@ -988,7 +987,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .attr("height", d => height - margin.bottom - y(d.value))
             .attr("fill", d => {
                 // Generate color based on label
-                const colors = [var(--primary), var(--accent), var(--success), var(--warning)];
+                const colors = ['#6366f1', '#8b5cf6', '#10b981', '#f59e0b'];
                 return colors[data.indexOf(d) % colors.length];
             });
         
@@ -1081,116 +1080,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .attr("transform", `translate(0,${height - margin.bottom})`)
             .call(d3.axisBottom(x).ticks(5).tickFormat(d => d + "%"))
             .attr("color", "var(--light-2)");
-    }
-    
-    function generateCorrelationHeatmap() {
-        const container = document.getElementById('correlation-heatmap');
-        container.innerHTML = '<div class="analytics-chart" id="correlation-heatmap-chart"></div>';
-        
-        const width = 400;
-        const height = 250;
-        const margin = {top: 40, right: 40, bottom: 40, left: 40};
-        
-        // Prepare data - use only numerical features
-        const numericalFeatures = decisionTreeModel.features.filter(f => featureTypes[f] === 'Numerical');
-        
-        // Calculate correlations
-        const correlations = [];
-        for (let i = 0; i < numericalFeatures.length; i++) {
-            for (let j = i + 1; j < numericalFeatures.length; j++) {
-                const f1 = numericalFeatures[i];
-                const f2 = numericalFeatures[j];
-                const corr = calculateCorrelation(f1, f2);
-                correlations.push({feature1: f1, feature2: f2, correlation: corr});
-            }
-        }
-        
-        // Sort by absolute correlation
-        correlations.sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation));
-        
-        // Take top 10
-        const topCorrelations = correlations.slice(0, 10);
-        
-        const svg = d3.select("#correlation-heatmap-chart")
-            .append("svg")
-            .attr("width", width)
-            .attr("height", height);
-        
-        const x = d3.scaleBand()
-            .domain(topCorrelations.map(d => d.feature1))
-            .range([margin.left, width - margin.right])
-            .padding(0.1);
-        
-        const y = d3.scaleBand()
-            .domain(topCorrelations.map(d => d.feature2))
-            .range([margin.top, height - margin.bottom])
-            .padding(0.1);
-        
-        // Add cells
-        svg.selectAll("rect")
-            .data(topCorrelations)
-            .enter()
-            .append("rect")
-            .attr("x", d => x(d.feature1))
-            .attr("y", d => y(d.feature2))
-            .attr("width", x.bandwidth())
-            .attr("height", y.bandwidth())
-            .attr("fill", d => {
-                const intensity = Math.abs(d.correlation);
-                return d.correlation > 0 ? 
-                    d3.interpolateReds(intensity) : 
-                    d3.interpolateBlues(intensity);
-            });
-        
-        // Add text
-        svg.selectAll("text")
-            .data(topCorrelations)
-            .enter()
-            .append("text")
-            .text(d => d.correlation.toFixed(2))
-            .attr("x", d => x(d.feature1) + x.bandwidth()/2)
-            .attr("y", d => y(d.feature2) + y.bandwidth()/2)
-            .attr("dy", "0.35em")
-            .attr("text-anchor", "middle")
-            .attr("fill", "white");
-        
-        // Add axes
-        svg.append("g")
-            .attr("transform", `translate(0,${margin.top})`)
-            .call(d3.axisTop(x))
-            .selectAll("text")
-            .attr("transform", "rotate(-45)")
-            .attr("text-anchor", "end")
-            .attr("fill", "var(--light-2)");
-        
-        svg.append("g")
-            .attr("transform", `translate(${margin.left},0)`)
-            .call(d3.axisLeft(y))
-            .attr("color", "var(--light-2)");
-    }
-    
-    function calculateCorrelation(feature1, feature2) {
-        const values1 = parsedData.map(row => row[feature1]).filter(v => !isNaN(v));
-        const values2 = parsedData.map(row => row[feature2]).filter(v => !isNaN(v));
-        
-        if (values1.length === 0 || values2.length === 0) return 0;
-        
-        const mean1 = values1.reduce((a, b) => a + b, 0) / values1.length;
-        const mean2 = values2.reduce((a, b) => a + b, 0) / values2.length;
-        
-        let numerator = 0;
-        let denom1 = 0;
-        let denom2 = 0;
-        
-        for (let i = 0; i < values1.length; i++) {
-            const diff1 = values1[i] - mean1;
-            const diff2 = values2[i] - mean2;
-            numerator += diff1 * diff2;
-            denom1 += diff1 * diff1;
-            denom2 += diff2 * diff2;
-        }
-        
-        return numerator / Math.sqrt(denom1 * denom2);
     }
     
     function resetAnalysis() {
