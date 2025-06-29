@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const regenerateBtn = document.getElementById('regenerate-btn');
     const newAnalysisBtn = document.getElementById('new-analysis-btn');
     const problemTypeSelect = document.getElementById('problem-type');
+    const progressBar = document.getElementById('progress-bar');
+    const timeLeft = document.getElementById('time-left');
     
     // Global variables
     let parsedData = null;
@@ -104,10 +106,29 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Reset progress bar
+        progressBar.style.width = '0%';
+        timeLeft.textContent = '20';
+        
         // Show loading state
         loading.style.display = 'block';
         processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
         processBtn.disabled = true;
+        
+        // Start progress simulation
+        let progress = 0;
+        const intervalId = setInterval(() => {
+            progress += 5;
+            progressBar.style.width = `${progress}%`;
+            
+            // Update time estimation
+            const remainingTime = 20 - (progress / 5);
+            timeLeft.textContent = Math.max(0, Math.floor(remainingTime));
+            
+            if (progress >= 100) {
+                clearInterval(intervalId);
+            }
+        }, 1000);
         
         const file = fileInput.files[0];
         const reader = new FileReader();
@@ -131,6 +152,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     throw new Error('No data found in the file');
                 }
                 
+                // Clear progress interval when done
+                clearInterval(intervalId);
+                progressBar.style.width = '100%';
+                
                 // Process the data
                 processData(parsedData);
                 
@@ -149,6 +174,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 
             } catch (error) {
                 console.error('Error processing file:', error);
+                // Clear progress interval on error
+                clearInterval(intervalId);
                 alert('Error processing file: ' + error.message);
                 loading.style.display = 'none';
                 processBtn.innerHTML = '<i class="fas fa-cogs"></i> Process Data';
@@ -157,6 +184,8 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         reader.onerror = function() {
+            // Clear progress interval on error
+            clearInterval(intervalId);
             alert('Error reading file');
             loading.style.display = 'none';
             processBtn.innerHTML = '<i class="fas fa-cogs"></i> Process Data';
