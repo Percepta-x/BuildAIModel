@@ -317,9 +317,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Generate prediction form
         generatePredictionForm(ignoredColumns, targetColumn);
-        
-        // Generate analytics
-        generateAnalytics(targetColumn);
     }
     
     // Simple decision tree implementation
@@ -339,15 +336,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return newRow;
         });
         
-        // Calculate feature importance
-        const featureImportance = calculateFeatureImportance(data, targetColumn, features, problemType);
-        
         // Create a simple decision tree model
         decisionTreeModel = {
             target: targetColumn,
             problemType: problemType,
             features: features,
-            featureImportance: featureImportance,
             root: buildTree(data, features, targetColumn, problemType, 0, 3),
             stats: {
                 rows: parsedData.length,
@@ -543,54 +536,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return parentVariance - childrenVariance;
     }
     
-    function calculateFeatureImportance(data, target, features, problemType) {
-        const importance = {};
-        const total = data.length;
-        
-        features.forEach(feature => {
-            if (featureTypes[feature] === 'Numerical') {
-                // Calculate variance reduction for numerical features
-                const values = data.map(row => row[feature]);
-                const median = [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
-                
-                const partitions = {
-                    left: data.filter(row => row[feature] <= median),
-                    right: data.filter(row => row[feature] > median)
-                };
-                
-                if (problemType === 'classification') {
-                    importance[feature] = informationGain(data, partitions, target);
-                } else {
-                    importance[feature] = varianceReduction(data, partitions, target);
-                }
-            } else {
-                // Calculate information gain for categorical features
-                const categories = [...new Set(data.map(row => row[feature]))];
-                const partitions = {};
-                
-                categories.forEach(category => {
-                    partitions[category] = data.filter(row => row[feature] === category);
-                });
-                
-                if (problemType === 'classification') {
-                    importance[feature] = informationGain(data, partitions, target);
-                } else {
-                    importance[feature] = varianceReduction(data, partitions, target);
-                }
-            }
-        });
-        
-        // Normalize importance scores to 0-100 range
-        const max = Math.max(...Object.values(importance));
-        if (max > 0) {
-            for (const feature in importance) {
-                importance[feature] = (importance[feature] / max * 100).toFixed(1);
-            }
-        }
-        
-        return importance;
-    }
-    
     function countNodes(node) {
         if (node.leaf) return 1;
         return 1 + node.children.reduce((sum, child) => sum + countNodes(child), 0);
@@ -607,52 +552,6 @@ document.addEventListener('DOMContentLoaded', function() {
             decisionTreeModel.features.length;
         document.getElementById('stat-nodes').textContent = 
             decisionTreeModel.stats.nodes;
-        document.getElementById('stat-accuracy').textContent = 
-            problemType === 'classification' ? 'Calculating...' : 'R²: 0.85';
-        
-        // Populate features table
-        const featuresBody = document.getElementById('features-body');
-        featuresBody.innerHTML = '';
-        
-        const features = decisionTreeModel.features;
-        const importance = decisionTreeModel.featureImportance;
-        
-        features.forEach(feature => {
-            const importanceVal = parseFloat(importance[feature]) || 0;
-            let importanceText;
-            let importanceClass;
-            
-            if (importanceVal > 70) {
-                importanceText = 'High';
-                importanceClass = 'importance-high';
-            } else if (importanceVal > 30) {
-                importanceText = 'Medium';
-                importanceClass = 'importance-medium';
-            } else {
-                importanceText = 'Low';
-                importanceClass = 'importance-low';
-            }
-            
-            const type = featureTypes[feature];
-            let rangeValues = '';
-            
-            if (type === 'Numerical') {
-                const range = featureRanges[feature];
-                rangeValues = `${range.min} to ${range.max}`;
-            } else {
-                const values = featureRanges[feature];
-                rangeValues = values.slice(0, 3).join(', ') + (values.length > 3 ? `... (${values.length})` : '');
-            }
-            
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${feature}</td>
-                <td><span class="feature-importance ${importanceClass}">${importanceText} (${importanceVal}%)</span></td>
-                <td>${type}</td>
-                <td>${rangeValues}</td>
-            `;
-            featuresBody.appendChild(row);
-        });
         
         // Create tree data for visualization
         const treeData = convertToD3Tree(decisionTreeModel.root, targetColumn, problemType);
@@ -933,153 +832,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         return predictWithTree(node.children[goLeft ? 0 : 1], inputs);
-    }
-    
-    function generateAnalytics(targetColumn) {
-        // Generate actual analytics from data
-        generateTargetDistribution(targetColumn);
-        generateFeatureImportanceChart();
-    }
-    
-    function generateTargetDistribution(targetColumn) {
-        const container = document.getElementById('target-distribution');
-        container.innerHTML = '<div class="analytics-chart" id="target-distribution-chart"></div>';
-        
-        const width = 400;
-        const height = 250;
-        const margin = {top: 20, right: 20, bottom: 40, left: 40};
-        
-        // Calculate distribution
-        const counts = {};
-        parsedData.forEach(row => {
-            const value = row[targetColumn];
-            counts[value] = (counts[value] || 0) + 1;
-        });
-        
-        const data = Object.entries(counts).map(([label, value]) => ({
-            label,
-            value,
-            percent: (value / parsedData.length * 100).toFixed(1)
-        }));
-        
-        const svg = d3.select("#target-distribution-chart")
-            .append("svg")
-            .attr("width", width)
-            .attr("height", height);
-        
-        const x = d3.scaleBand()
-            .domain(data.map(d => d.label))
-            .range([margin.left, width - margin.right])
-            .padding(0.1);
-        
-        const y = d3.scaleLinear()
-            .domain([0, d3.max(data, d => d.value)])
-            .range([height - margin.bottom, margin.top]);
-        
-        // Add bars
-        svg.selectAll("rect")
-            .data(data)
-            .enter()
-            .append("rect")
-            .attr("x", d => x(d.label))
-            .attr("y", d => y(d.value))
-            .attr("width", x.bandwidth())
-            .attr("height", d => height - margin.bottom - y(d.value))
-            .attr("fill", d => {
-                // Generate color based on label
-                const colors = ['#6366f1', '#8b5cf6', '#10b981', '#f59e0b'];
-                return colors[data.indexOf(d) % colors.length];
-            });
-        
-        // Add labels
-        svg.selectAll("text")
-            .data(data)
-            .enter()
-            .append("text")
-            .text(d => d.percent + "%")
-            .attr("x", d => x(d.label) + x.bandwidth()/2)
-            .attr("y", d => y(d.value) - 5)
-            .attr("text-anchor", "middle")
-            .attr("fill", "white");
-        
-        // Add x axis
-        svg.append("g")
-            .attr("transform", `translate(0,${height - margin.bottom})`)
-            .call(d3.axisBottom(x))
-            .selectAll("text")
-            .attr("fill", "var(--light-2)");
-        
-        // Add y axis
-        svg.append("g")
-            .attr("transform", `translate(${margin.left},0)`)
-            .call(d3.axisLeft(y))
-            .attr("color", "var(--light-2)");
-    }
-    
-    function generateFeatureImportanceChart() {
-        const container = document.getElementById('feature-importance');
-        container.innerHTML = '<div class="analytics-chart" id="feature-importance-chart"></div>';
-        
-        const width = 400;
-        const height = 250;
-        const margin = {top: 20, right: 20, bottom: 40, left: 100};
-        
-        // Prepare data
-        const features = decisionTreeModel.features;
-        const importance = decisionTreeModel.featureImportance;
-        
-        const data = features.map(feature => ({
-            feature,
-            importance: parseFloat(importance[feature]) || 0
-        })).sort((a, b) => b.importance - a.importance).slice(0, 5); // Top 5 features
-        
-        const svg = d3.select("#feature-importance-chart")
-            .append("svg")
-            .attr("width", width)
-            .attr("height", height);
-        
-        const y = d3.scaleBand()
-            .domain(data.map(d => d.feature))
-            .range([margin.top, height - margin.bottom])
-            .padding(0.1);
-        
-        const x = d3.scaleLinear()
-            .domain([0, 100])
-            .range([margin.left, width - margin.right]);
-        
-        // Add bars
-        svg.selectAll("rect")
-            .data(data)
-            .enter()
-            .append("rect")
-            .attr("y", d => y(d.feature))
-            .attr("x", margin.left)
-            .attr("width", d => x(d.importance) - margin.left)
-            .attr("height", y.bandwidth())
-            .attr("fill", "var(--primary)");
-        
-        // Add labels
-        svg.selectAll("text")
-            .data(data)
-            .enter()
-            .append("text")
-            .text(d => d.importance + "%")
-            .attr("x", d => x(d.importance) + 5)
-            .attr("y", d => y(d.feature) + y.bandwidth()/2)
-            .attr("dy", "0.35em")
-            .attr("fill", "white");
-        
-        // Add y axis
-        svg.append("g")
-            .attr("transform", `translate(${margin.left},0)`)
-            .call(d3.axisLeft(y))
-            .attr("color", "var(--light-2)");
-        
-        // Add x axis
-        svg.append("g")
-            .attr("transform", `translate(0,${height - margin.bottom})`)
-            .call(d3.axisBottom(x).ticks(5).tickFormat(d => d + "%"))
-            .attr("color", "var(--light-2)");
     }
     
     function resetAnalysis() {
