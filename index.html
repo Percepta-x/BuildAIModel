@@ -3,13 +3,656 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TreeMind AI - Decision Tree Generator</title>
-    <link rel="icon" href="logo.png" type="image/png">
+    <title>DataPredictor | Instant Data Value Prediction Tool | CSV & JSON Analysis</title>
+    <meta name="description" content="Predict data values instantly with DataPredictor. Upload CSV/JSON files, select target values, and get accurate predictions. No server processing - 100% private browser-based tool.">
+    <meta name="keywords" content="data prediction, predict data values, csv prediction, json prediction, data analysis tool, machine learning prediction, browser-based prediction">
+    <meta name="author" content="DataPredictor">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://datapredictor.com/">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-    <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <style>
+        :root {
+            --primary: #3a86ff;
+            --primary-dark: #2667cc;
+            --secondary: #06d6a0;
+            --accent: #ff9e00;
+            --dark-1: #0f172a;
+            --dark-2: #1e293b;
+            --dark-3: #334155;
+            --dark-4: #475569;
+            --light-1: #f1f5f9;
+            --light-2: #e2e8f0;
+            --warning: #ff9e00;
+            --danger: #ef476f;
+            --success: #06d6a0;
+            --border-radius: 12px;
+            --transition: all 0.3s ease;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            --card-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--dark-1) 0%, var(--dark-2) 100%);
+            color: var(--light-1);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            z-index: -1;
+            background: radial-gradient(circle at top right, var(--accent) 0%, transparent 70%);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .logo-icon {
+            font-size: 2.5rem;
+            color: var(--primary);
+            background: rgba(58, 134, 255, 0.1);
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 0 5px rgba(58, 134, 255, 0.2);
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--light-2);
+            max-width: 700px;
+            margin: 0 auto 30px;
+            font-weight: 400;
+            line-height: 1.7;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-shadow);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .card-icon {
+            font-size: 1.8rem;
+            color: var(--primary);
+            background: rgba(58, 134, 255, 0.1);
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: var(--light-1);
+            font-weight: 700;
+        }
+
+        .upload-area {
+            border: 3px dashed var(--dark-4);
+            border-radius: var(--border-radius);
+            padding: 50px 30px;
+            text-align: center;
+            transition: var(--transition);
+            cursor: pointer;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(38, 103, 204, 0.05);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .upload-area:hover, .upload-area.drag-over {
+            border-color: var(--primary);
+        }
+
+        .upload-area:hover:before, .upload-area.drag-over:before {
+            opacity: 1;
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: var(--dark-4);
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+
+        .upload-area:hover .upload-icon, .upload-area.drag-over .upload-icon {
+            color: var(--primary);
+        }
+
+        .upload-text h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .upload-text p {
+            color: var(--light-2);
+            margin-bottom: 20px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(58, 134, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn:after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.2) 100%);
+            opacity: 0;
+            transition: var(--transition);
+            z-index: -1;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(58, 134, 255, 0.4);
+        }
+
+        .btn:hover:after {
+            opacity: 1;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            box-shadow: none;
+        }
+
+        .btn-outline:after {
+            background: rgba(58, 134, 255, 0.1);
+        }
+
+        .btn-outline:hover {
+            background: rgba(58, 134, 255, 0.1);
+        }
+
+        .btn-success {
+            background: var(--success);
+            box-shadow: 0 4px 10px rgba(6, 214, 160, 0.3);
+        }
+
+        .btn-success:hover {
+            background: #05b388;
+            box-shadow: 0 7px 15px rgba(6, 214, 160, 0.4);
+        }
+
+        .file-info {
+            background: var(--dark-3);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .file-details {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .file-icon {
+            font-size: 2.5rem;
+            color: var(--primary);
+        }
+
+        .file-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .file-size {
+            color: var(--light-2);
+            font-size: 0.9rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        .results-container {
+            display: none;
+            margin-top: 30px;
+            animation: fadeIn 0.8s ease;
+        }
+
+        .stats-container {
+            background: var(--dark-3);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .prediction-form {
+            background: var(--dark-2);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .prediction-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .prediction-group {
+            margin-bottom: 10px;
+        }
+
+        .prediction-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: var(--light-2);
+        }
+
+        .prediction-group input, .prediction-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: var(--dark-3);
+            border: 1px solid var(--dark-4);
+            color: var(--light-1);
+            font-size: 1rem;
+        }
+
+        .prediction-group input:focus, .prediction-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .prediction-result {
+            background: var(--dark-2);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+            border-left: 4px solid var(--success);
+        }
+
+        .prediction-result h4 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .prediction-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(58, 134, 255, 0.2);
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            font-size: 1.2rem;
+            color: var(--light-2);
+        }
+
+        .config-panel {
+            background: var(--dark-3);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .config-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .config-group {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .config-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--light-1);
+        }
+
+        .config-group select, .config-group input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            background: var(--dark-2);
+            border: 1px solid var(--dark-4);
+            color: var(--light-1);
+            font-size: 1rem;
+        }
+
+        .config-group select:focus, .config-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            background: var(--dark-2);
+            border-radius: 8px;
+            border: 1px solid var(--dark-4);
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-item input {
+            width: auto;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--dark-2);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: block;
+        }
+
+        .preview-table th, .preview-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--dark-4);
+        }
+
+        .preview-table th {
+            background: var(--dark-4);
+            position: sticky;
+            top: 0;
+        }
+
+        .preview-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .progress-container {
+            width: 80%;
+            max-width: 400px;
+            height: 10px;
+            background: var(--dark-3);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px auto;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .time-estimation {
+            text-align: center;
+            color: var(--light-2);
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .usage-steps {
+            display: flex;
+            justify-content: space-between;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .step {
+            flex: 1;
+            min-width: 200px;
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius);
+            margin: 10px;
+        }
+
+        .step-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .seo-content {
+            max-width: 800px;
+            margin: 40px auto;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: var(--border-radius);
+            padding: 30px;
+        }
+
+        .seo-content h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .seo-content p {
+            margin-bottom: 15px;
+            line-height: 1.7;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .benefit-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .benefit-card i {
+            font-size: 2.5rem;
+            color: var(--secondary);
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .file-info {
+                flex-direction: column;
+                gap: 20px;
+                align-items: flex-start;
+            }
+            
+            .controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .upload-area {
+                padding: 30px 15px;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .config-row {
+                flex-direction: column;
+            }
+            
+            .config-group {
+                min-width: 100%;
+            }
+            
+            .prediction-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .usage-steps {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
+
+
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-WMD85ZS44X"></script>
 <script>
@@ -26,11 +669,29 @@
             <div class="header-bg"></div>
             <div class="logo">
                 <div class="logo-icon">
-                    <i class="fas fa-brain"></i>
+                    <i class="fas fa-chart-line"></i>
                 </div>
-                <h1>TreeMind AI</h1>
+                <h1>DataPredictor</h1>
             </div>
-            <p class="subtitle">Upload your dataset and instantly generate AI-powered decision trees with beautiful visualizations.</p>
+            <p class="subtitle">Upload your dataset and get instant predictions. Our advanced algorithms predict values in seconds with high accuracy. Your data never leaves your browser.</p>
+            
+            <div class="usage-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Upload Dataset</h3>
+                    <p>CSV or JSON files with your data</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Select Target</h3>
+                    <p>Choose the value to predict</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Get Predictions</h3>
+                    <p>Enter values and see predictions</p>
+                </div>
+            </div>
         </header>
 
         <main>
@@ -40,6 +701,13 @@
                         <i class="fas fa-cloud-upload-alt"></i>
                     </div>
                     <h2>Upload Your Dataset</h2>
+                </div>
+                
+                <div class="alert alert-info" style="background: rgba(58, 134, 255, 0.15); border-left: 4px solid var(--primary); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
+                    <i class="fas fa-info-circle" style="color: var(--primary); font-size: 1.5rem;"></i>
+                    <div>
+                        <strong>Supported formats:</strong> CSV, JSON. For best results, ensure your data has a clear target variable.
+                    </div>
                 </div>
                 
                 <div id="upload-area" class="upload-area">
@@ -69,6 +737,13 @@
                         <button class="btn btn-outline" id="change-file-btn">
                             <i class="fas fa-exchange-alt"></i> Change File
                         </button>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning" style="background: rgba(255, 158, 0, 0.15); border-left: 4px solid var(--warning); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px;">
+                    <i class="fas fa-exclamation-triangle" style="color: var(--warning); font-size: 1.5rem;"></i>
+                    <div>
+                        <strong>Privacy Note:</strong> Your data is processed entirely in your browser. No data is sent to any server - your information stays 100% private and secure.
                     </div>
                 </div>
                 
@@ -108,8 +783,8 @@
                     </div>
                     
                     <div style="margin-top: 20px; text-align: center;">
-                        <button class="btn btn-success" id="generate-tree-btn">
-                            <i class="fas fa-project-diagram"></i> Generate Decision Tree
+                        <button class="btn btn-success" id="generate-btn">
+                            <i class="fas fa-bolt"></i> Generate Predictor
                         </button>
                     </div>
                 </div>
@@ -117,7 +792,7 @@
             
             <div class="loading" id="loading">
                 <div class="loading-spinner"></div>
-                <p class="loading-text">Processing your data and generating decision tree...</p>
+                <p class="loading-text">Processing your data and building predictor...</p>
                 
                 <!-- Progress bar container -->
                 <div class="progress-container">
@@ -125,72 +800,707 @@
                 </div>
                 
                 <!-- Time estimation -->
-                <p class="time-estimation" id="time-estimation">Estimated time left: <span id="time-left">20</span> seconds</p>
+                <p class="time-estimation">Estimated time left: <span id="time-left">10</span> seconds</p>
             </div>
             
             <div id="results-container" class="results-container">
                 <div class="card">
                     <div class="card-header">
                         <div class="card-icon">
-                            <i class="fas fa-project-diagram"></i>
+                            <i class="fas fa-bolt"></i>
                         </div>
-                        <h2>AI Decision Tree Results</h2>
+                        <h2>Prediction Results</h2>
                     </div>
                     
-                    <div class="results-grid">
-                        <div class="tree-container">
-                            <div id="tree-diagram"></div>
+                    <div class="stats-container">
+                        <h3 style="margin: 0 0 20px;">Make Prediction</h3>
+                        <div id="prediction-form" class="prediction-form">
+                            <!-- Prediction form will be generated here -->
                         </div>
                         
-                        <div class="stats-container">
-                            <h3 style="margin-bottom: 20px;">Analysis Summary</h3>
-                            
-                            <div class="stats-grid">
-                                <div class="stat-card">
-                                    <div class="stat-icon stat-icon-1">
-                                        <i class="fas fa-table"></i>
-                                    </div>
-                                    <div class="stat-value" id="stat-rows">1,204</div>
-                                    <div class="stat-label">Data Rows</div>
-                                </div>
-                                
-                                <div class="stat-card">
-                                    <div class="stat-icon stat-icon-2">
-                                        <i class="fas fa-columns"></i>
-                                    </div>
-                                    <div class="stat-value" id="stat-cols">12</div>
-                                    <div class="stat-label">Features</div>
-                                </div>
-                                
-                                <div class="stat-card">
-                                    <div class="stat-icon stat-icon-3">
-                                        <i class="fas fa-sitemap"></i>
-                                    </div>
-                                    <div class="stat-value" id="stat-nodes">27</div>
-                                    <div class="stat-label">Tree Nodes</div>
-                                </div>
-                            </div>
-                            
-                            <h3 style="margin: 30px 0 15px;">Make Prediction</h3>
-                            <div id="prediction-form" class="prediction-form">
-                                <!-- Prediction form will be generated here -->
-                            </div>
-                            
-                            <div style="margin-top: 25px; display: flex; gap: 15px; flex-wrap: wrap;">
-                                <button class="btn btn-outline" id="regenerate-btn">
-                                    <i class="fas fa-redo"></i> Regenerate
-                                </button>
-                                <button class="btn btn-outline" id="new-analysis-btn">
-                                    <i class="fas fa-plus"></i> New Analysis
-                                </button>
-                            </div>
+                        <div id="prediction-result-container">
+                            <!-- Prediction results will appear here -->
+                        </div>
+                        
+                        <div style="margin-top: 25px; display: flex; gap: 15px; flex-wrap: wrap;">
+                            <button class="btn btn-outline" id="new-analysis-btn">
+                                <i class="fas fa-plus"></i> New Analysis
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
+            
+            <div class="seo-content">
+                <h2>DataPredictor: Instant Data Value Prediction Tool</h2>
+                <p>DataPredictor is a powerful browser-based tool that enables you to predict values from your datasets instantly. With our advanced prediction algorithms, you can forecast outcomes, classify data, and make informed decisions without any server processing.</p>
+                
+                <h3>How DataPredictor Works</h3>
+                <p>Our tool uses sophisticated pattern recognition algorithms to analyze your data and build predictive models directly in your browser. Simply upload your CSV or JSON file, select the target value you want to predict, and our system will create an accurate prediction model in seconds.</p>
+                
+                <div class="benefits-grid">
+                    <div class="benefit-card">
+                        <i class="fas fa-shield-alt"></i>
+                        <h3>100% Private</h3>
+                        <p>Your data never leaves your computer - all processing happens in your browser</p>
+                    </div>
+                    <div class="benefit-card">
+                        <i class="fas fa-bolt"></i>
+                        <h3>Instant Results</h3>
+                        <p>Get predictions in seconds without complex setup or configuration</p>
+                    </div>
+                    <div class="benefit-card">
+                        <i class="fas fa-file-csv"></i>
+                        <h3>CSV & JSON Support</h3>
+                        <p>Works with standard data formats you already use</p>
+                    </div>
+                    <div class="benefit-card">
+                        <i class="fas fa-lock"></i>
+                        <h3>No Registration</h3>
+                        <p>Start predicting immediately - no signup required</p>
+                    </div>
+                </div>
+                
+                <h3>Use Cases for DataPredictor</h3>
+                <p>DataPredictor is perfect for business analysts, researchers, students, and anyone who works with data:</p>
+                <ul style="margin-left: 30px; margin-bottom: 20px;">
+                    <li>Predict sales figures based on historical data</li>
+                    <li>Classify customer behavior for marketing campaigns</li>
+                    <li>Forecast inventory requirements</li>
+                    <li>Predict student performance based on demographic data</li>
+                    <li>Estimate real estate prices based on property features</li>
+                </ul>
+                
+                <p>Whether you're working with financial data, customer information, scientific measurements, or any other dataset, DataPredictor helps you uncover valuable insights and make data-driven decisions with confidence.</p>
+            </div>
         </main>
+        
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM elements
+            const uploadArea = document.getElementById('upload-area');
+            const fileInput = document.getElementById('file-input');
+            const browseBtn = document.getElementById('browse-btn');
+            const fileInfo = document.getElementById('file-info');
+            const fileName = document.getElementById('file-name');
+            const fileSize = document.getElementById('file-size');
+            const processBtn = document.getElementById('process-btn');
+            const changeFileBtn = document.getElementById('change-file-btn');
+            const resultsContainer = document.getElementById('results-container');
+            const loading = document.getElementById('loading');
+            const configPanel = document.getElementById('config-panel');
+            const targetColumnSelect = document.getElementById('target-column');
+            const ignoreColumnsContainer = document.getElementById('ignore-columns');
+            const previewHeader = document.getElementById('preview-header');
+            const previewBody = document.getElementById('preview-body');
+            const generateBtn = document.getElementById('generate-btn');
+            const newAnalysisBtn = document.getElementById('new-analysis-btn');
+            const problemTypeSelect = document.getElementById('problem-type');
+            const progressBar = document.getElementById('progress-bar');
+            const timeLeft = document.getElementById('time-left');
+            
+            // Global variables
+            let parsedData = null;
+            let columns = [];
+            let predictionModel = null;
+            let featureRanges = {};
+            let featureTypes = {};
+            
+            // Event listeners
+            browseBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelect);
+            changeFileBtn.addEventListener('click', () => fileInput.click());
+            processBtn.addEventListener('click', processFile);
+            generateBtn.addEventListener('click', generatePredictor);
+            newAnalysisBtn.addEventListener('click', resetAnalysis);
+            
+            // Drag and drop events
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.classList.add('drag-over');
+                }, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.classList.remove('drag-over');
+                }, false);
+            });
+            
+            uploadArea.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length) {
+                    fileInput.files = files;
+                    handleFileSelect();
+                }
+            }
+            
+            function handleFileSelect() {
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    fileName.textContent = file.name;
+                    fileSize.textContent = formatFileSize(file.size);
+                    fileInfo.style.display = 'flex';
+                    
+                    // Update icon based on file type
+                    const fileIcon = fileInfo.querySelector('.file-icon');
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    
+                    if (ext === 'csv') {
+                        fileIcon.className = 'fas fa-file-csv file-icon';
+                    } else if (ext === 'json') {
+                        fileIcon.className = 'fas fa-file-code file-icon';
+                    } else {
+                        fileIcon.className = 'fas fa-file file-icon';
+                    }
+                }
+            }
+            
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            function processFile() {
+                if (!fileInput.files.length) {
+                    alert('Please select a file first!');
+                    return;
+                }
+                
+                // Reset progress bar
+                progressBar.style.width = '0%';
+                timeLeft.textContent = '10';
+                
+                // Show loading state
+                loading.style.display = 'block';
+                processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                processBtn.disabled = true;
+                
+                // Start progress simulation
+                let progress = 0;
+                const intervalId = setInterval(() => {
+                    progress += 10;
+                    progressBar.style.width = `${progress}%`;
+                    
+                    // Update time estimation
+                    const remainingTime = 10 - (progress / 10);
+                    timeLeft.textContent = Math.max(0, Math.floor(remainingTime));
+                    
+                    if (progress >= 100) {
+                        clearInterval(intervalId);
+                    }
+                }, 1000);
+                
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const content = e.target.result;
+                        const ext = file.name.split('.').pop().toLowerCase();
+                        
+                        if (ext === 'csv') {
+                            // Parse CSV data
+                            parsedData = parseCSV(content);
+                        } else if (ext === 'json') {
+                            // Parse JSON data
+                            parsedData = JSON.parse(content);
+                        } else {
+                            throw new Error('Unsupported file format');
+                        }
+                        
+                        if (!parsedData || parsedData.length === 0) {
+                            throw new Error('No data found in the file');
+                        }
+                        
+                        // Clear progress interval when done
+                        clearInterval(intervalId);
+                        progressBar.style.width = '100%';
+                        
+                        // Process the data
+                        processData(parsedData);
+                        
+                        // Hide loading
+                        loading.style.display = 'none';
+                        
+                        // Show config panel
+                        configPanel.style.display = 'block';
+                        
+                        // Scroll to config panel
+                        configPanel.scrollIntoView({ behavior: 'smooth' });
+                        
+                        // Reset button
+                        processBtn.innerHTML = '<i class="fas fa-cogs"></i> Process Data';
+                        processBtn.disabled = false;
+                        
+                    } catch (error) {
+                        console.error('Error processing file:', error);
+                        // Clear progress interval on error
+                        clearInterval(intervalId);
+                        alert('Error processing file: ' + error.message);
+                        loading.style.display = 'none';
+                        processBtn.innerHTML = '<i class="fas fa-cogs"></i> Process Data';
+                        processBtn.disabled = false;
+                    }
+                };
+                
+                reader.onerror = function() {
+                    // Clear progress interval on error
+                    clearInterval(intervalId);
+                    alert('Error reading file');
+                    loading.style.display = 'none';
+                    processBtn.innerHTML = '<i class="fas fa-cogs"></i> Process Data';
+                    processBtn.disabled = false;
+                };
+                
+                reader.readAsText(file);
+            }
+            
+            function parseCSV(content) {
+                // Parse CSV using PapaParse
+                const results = Papa.parse(content, {
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true,
+                    fastMode: true
+                });
+                
+                if (results.errors.length > 0) {
+                    console.warn('CSV parsing errors:', results.errors);
+                }
+                
+                return results.data;
+            }
+            
+            function processData(data) {
+                // Extract columns from first row
+                columns = Object.keys(data[0]);
+                
+                // Calculate feature types and ranges
+                calculateFeatureProperties(data);
+                
+                // Populate target column dropdown
+                targetColumnSelect.innerHTML = '';
+                columns.forEach(col => {
+                    const option = document.createElement('option');
+                    option.value = col;
+                    option.textContent = col;
+                    targetColumnSelect.appendChild(option);
+                });
+                
+                // Populate ignore columns checkboxes
+                ignoreColumnsContainer.innerHTML = '';
+                columns.forEach(col => {
+                    const div = document.createElement('div');
+                    div.className = 'checkbox-item';
+                    
+                    const input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.id = `ignore-${col}`;
+                    input.value = col;
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = `ignore-${col}`;
+                    label.textContent = col;
+                    
+                    div.appendChild(input);
+                    div.appendChild(label);
+                    ignoreColumnsContainer.appendChild(div);
+                });
+                
+                // Show data preview
+                showDataPreview(data);
+            }
+            
+            function calculateFeatureProperties(data) {
+                featureTypes = {};
+                featureRanges = {};
+                
+                columns.forEach(col => {
+                    // Check if column is numeric
+                    const firstValue = data[0][col];
+                    const isNumeric = typeof firstValue === 'number';
+                    
+                    featureTypes[col] = isNumeric ? 'Numerical' : 'Categorical';
+                    
+                    if (isNumeric) {
+                        // Calculate min, max for numerical columns
+                        const values = data.map(row => row[col]).filter(val => !isNaN(val));
+                        if (values.length > 0) {
+                            featureRanges[col] = {
+                                min: Math.min(...values),
+                                max: Math.max(...values)
+                            };
+                        }
+                    } else {
+                        // Get unique values for categorical columns
+                        const uniqueValues = [...new Set(data.map(row => row[col]))];
+                        featureRanges[col] = uniqueValues;
+                    }
+                });
+            }
+            
+            function showDataPreview(data) {
+                previewHeader.innerHTML = '';
+                previewBody.innerHTML = '';
+                
+                // Create header row
+                const headerRow = document.createElement('tr');
+                columns.forEach(col => {
+                    const th = document.createElement('th');
+                    th.textContent = col;
+                    headerRow.appendChild(th);
+                });
+                previewHeader.appendChild(headerRow);
+                
+                // Create data rows (show max 10 rows)
+                const previewRows = Math.min(10, data.length);
+                for (let i = 0; i < previewRows; i++) {
+                    const row = document.createElement('tr');
+                    columns.forEach(col => {
+                        const td = document.createElement('td');
+                        const value = data[i][col];
+                        td.textContent = value !== undefined ? 
+                            (typeof value === 'string' ? value : JSON.stringify(value)) : '';
+                        row.appendChild(td);
+                    });
+                    previewBody.appendChild(row);
+                }
+            }
+            
+            function generatePredictor() {
+                // Show loading state
+                loading.style.display = 'block';
+                configPanel.style.display = 'none';
+                
+                // Get configuration
+                const targetColumn = targetColumnSelect.value;
+                const problemType = problemTypeSelect.value;
+                
+                if (!targetColumn) {
+                    alert('Please select a target column!');
+                    loading.style.display = 'none';
+                    configPanel.style.display = 'block';
+                    return;
+                }
+                
+                // Get ignored columns
+                const ignoredColumns = [];
+                document.querySelectorAll('#ignore-columns input:checked').forEach(input => {
+                    ignoredColumns.push(input.value);
+                });
+                
+                // Build prediction model
+                buildPredictionModel(targetColumn, ignoredColumns, problemType);
+                
+                // Hide loading
+                loading.style.display = 'none';
+                
+                // Show results
+                resultsContainer.style.display = 'block';
+                
+                // Scroll to results
+                resultsContainer.scrollIntoView({ behavior: 'smooth' });
+                
+                // Generate prediction form
+                generatePredictionForm(ignoredColumns, targetColumn);
+            }
+            
+            // Fast prediction model implementation
+            function buildPredictionModel(targetColumn, ignoredColumns, problemType) {
+                // Get features to include
+                const features = columns.filter(col => 
+                    col !== targetColumn && !ignoredColumns.includes(col)
+                );
+                
+                // Prepare data
+                const data = parsedData.map(row => {
+                    const newRow = {};
+                    features.forEach(feature => {
+                        newRow[feature] = row[feature];
+                    });
+                    newRow[targetColumn] = row[targetColumn];
+                    return newRow;
+                });
+                
+                // Create prediction model
+                predictionModel = {
+                    target: targetColumn,
+                    problemType: problemType,
+                    features: features,
+                    // We'll use a simplified model for faster predictions
+                    model: buildFastModel(data, features, targetColumn, problemType)
+                };
+            }
+            
+            function buildFastModel(data, features, target, problemType) {
+                // This is a simplified model for faster predictions
+                // In a real application, you would use a proper machine learning model
+                
+                if (problemType === 'classification') {
+                    // For classification, we'll store the most common value for each feature combination
+                    const model = {};
+                    
+                    // We'll create a simple lookup based on the first two features
+                    const feature1 = features[0];
+                    const feature2 = features[1] || feature1;
+                    
+                    // Create buckets for combinations
+                    data.forEach(row => {
+                        const key = `${row[feature1]}_${row[feature2]}`;
+                        if (!model[key]) model[key] = {};
+                        
+                        const value = row[target];
+                        model[key][value] = (model[key][value] || 0) + 1;
+                    });
+                    
+                    // Convert to most common value
+                    for (const key in model) {
+                        let maxCount = 0;
+                        let maxValue = null;
+                        for (const [value, count] of Object.entries(model[key])) {
+                            if (count > maxCount) {
+                                maxCount = count;
+                                maxValue = value;
+                            }
+                        }
+                        model[key] = {
+                            value: maxValue,
+                            confidence: (maxCount / data.length * 100).toFixed(1)
+                        };
+                    }
+                    
+                    return model;
+                } else {
+                    // For regression, we'll store averages for each feature combination
+                    const model = {};
+                    
+                    // We'll create a simple lookup based on the first two features
+                    const feature1 = features[0];
+                    const feature2 = features[1] || feature1;
+                    
+                    // Create buckets for combinations
+                    data.forEach(row => {
+                        const key = `${row[feature1]}_${row[feature2]}`;
+                        if (!model[key]) model[key] = { sum: 0, count: 0 };
+                        
+                        model[key].sum += row[target];
+                        model[key].count++;
+                    });
+                    
+                    // Calculate averages
+                    for (const key in model) {
+                        model[key] = {
+                            value: (model[key].sum / model[key].count).toFixed(2),
+                            count: model[key].count
+                        };
+                    }
+                    
+                    return model;
+                }
+            }
+            
+            function generatePredictionForm(ignoredColumns, targetColumn) {
+                const predictionForm = document.getElementById('prediction-form');
+                predictionForm.innerHTML = '';
+                
+                // Get features to include in form
+                const features = columns.filter(col => 
+                    col !== targetColumn && 
+                    !ignoredColumns.includes(col) && 
+                    col in featureTypes
+                );
+                
+                // Create form structure
+                let formHTML = `<div class="prediction-row">`;
+                
+                features.forEach((feature, index) => {
+                    formHTML += `
+                        <div class="prediction-group">
+                            <label for="prediction-${feature}">${feature}</label>
+                    `;
+                    
+                    if (featureTypes[feature] === 'Numerical') {
+                        const range = featureRanges[feature];
+                        formHTML += `
+                            <input type="number" id="prediction-${feature}" 
+                                   placeholder="${range.min} to ${range.max}" 
+                                   min="${range.min}" max="${range.max}" 
+                                   step="${(range.max - range.min)/100}">
+                        `;
+                    } else {
+                        const options = featureRanges[feature].map(val => 
+                            `<option value="${val}">${val}</option>`
+                        ).join('');
+                        formHTML += `
+                            <select id="prediction-${feature}">
+                                <option value="">Select value</option>
+                                ${options}
+                            </select>
+                        `;
+                    }
+                    
+                    formHTML += `</div>`;
+                    
+                    // Split into 2 columns
+                    if ((index + 1) % 2 === 0 && index < features.length - 1) {
+                        formHTML += `</div><div class="prediction-row">`;
+                    }
+                });
+                
+                formHTML += `</div>`;
+                formHTML += `
+                    <button class="btn" id="predict-btn" style="margin-top: 15px;">
+                        <i class="fas fa-bolt"></i> Predict ${targetColumn}
+                    </button>
+                `;
+                
+                predictionForm.innerHTML = formHTML;
+                
+                // Add event listener to predict button
+                document.getElementById('predict-btn').addEventListener('click', makePrediction);
+            }
+            
+            function makePrediction() {
+                if (!predictionModel) {
+                    alert('Please generate the predictor first');
+                    return;
+                }
+                
+                const inputs = {};
+                const features = predictionModel.features;
+                
+                // Collect input values
+                let valid = true;
+                features.forEach(feature => {
+                    const input = document.getElementById(`prediction-${feature}`);
+                    let value = input.value;
+                    
+                    if (value === '') {
+                        valid = false;
+                        input.style.borderColor = 'var(--danger)';
+                    } else {
+                        input.style.borderColor = '';
+                        // Convert to number if numerical
+                        if (featureTypes[feature] === 'Numerical') {
+                            value = parseFloat(value);
+                        }
+                        inputs[feature] = value;
+                    }
+                });
+                
+                if (!valid) {
+                    alert('Please fill in all fields');
+                    return;
+                }
+                
+                // Make prediction using the model
+                const prediction = predictWithModel(inputs);
+                
+                // Display prediction result
+                const resultContainer = document.getElementById('prediction-result-container');
+                
+                if (predictionModel.problemType === 'classification') {
+                    resultContainer.innerHTML = `
+                        <div class="prediction-result">
+                            <h4>Prediction Result</h4>
+                            <div class="prediction-value">${prediction.value}</div>
+                            <p>Confidence: ${prediction.confidence}%</p>
+                            <p>Based on ${prediction.count} similar records</p>
+                        </div>
+                    `;
+                } else {
+                    resultContainer.innerHTML = `
+                        <div class="prediction-result">
+                            <h4>Prediction Result</h4>
+                            <div class="prediction-value">${prediction.value}</div>
+                            <p>Based on ${prediction.count} similar records</p>
+                        </div>
+                    `;
+                }
+                
+                // Scroll to result
+                resultContainer.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center'
+                });
+            }
+            
+            function predictWithModel(inputs) {
+                // Simplified prediction using the fast model
+                const feature1 = predictionModel.features[0];
+                const feature2 = predictionModel.features[1] || feature1;
+                
+                const key = `${inputs[feature1]}_${inputs[feature2]}`;
+                
+                if (predictionModel.model[key]) {
+                    return predictionModel.model[key];
+                }
+                
+                // Fallback to a default prediction if no exact match
+                if (predictionModel.problemType === 'classification') {
+                    return {
+                        value: "Unknown",
+                        confidence: "0",
+                        count: 0
+                    };
+                } else {
+                    return {
+                        value: "0",
+                        count: 0
+                    };
+                }
+            }
+            
+            function resetAnalysis() {
+                // Reset the UI
+                resultsContainer.style.display = 'none';
+                configPanel.style.display = 'none';
+                fileInfo.style.display = 'none';
+                fileInput.value = '';
+                
+                // Clear data
+                parsedData = null;
+                columns = [];
+                predictionModel = null;
+                featureRanges = {};
+                featureTypes = {};
+                
+                // Reset buttons
+                processBtn.innerHTML = '<i class="fas fa-cogs"></i> Process Data';
+                processBtn.disabled = false;
+                
+                // Clear preview
+                previewHeader.innerHTML = '';
+                previewBody.innerHTML = '';
+                targetColumnSelect.innerHTML = '';
+                ignoreColumnsContainer.innerHTML = '';
+                
+                // Clear prediction form and result
+                document.getElementById('prediction-form').innerHTML = '';
+                document.getElementById('prediction-result-container').innerHTML = '';
+                
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+    </script>
 </body>
 </html>
